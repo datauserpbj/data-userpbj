@@ -1,0 +1,1 @@
+ALTER TABLE ppk ADD COLUMN IF NOT EXISTS alasan_penonaktifan TEXT;

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Formulir Pengajuan - LPSE Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container": "#e7eeff",
+                    "background": "#f9f9ff",
+                    "secondary": "#1960a3",
+                    "surface-variant": "#d8e3fa",
+                    "on-secondary-fixed": "#001c38",
+                    "on-primary-container": "#86a0cd",
+                    "on-error": "#ffffff",
+                    "on-background": "#111c2c",
+                    "tertiary": "#1b2127",
+                    "inverse-primary": "#adc7f7",
+                    "on-tertiary-container": "#989fa6",
+                    "outline-variant": "#c4c6cf",
+                    "on-primary-fixed-variant": "#2d476f",
+                    "primary": "#002045",
+                    "surface-dim": "#cfdaf1",
+                    "on-primary": "#ffffff",
+                    "surface-bright": "#f9f9ff",
+                    "primary-fixed-dim": "#adc7f7",
+                    "on-secondary-container": "#00477f",
+                    "inverse-surface": "#263142",
+                    "on-tertiary": "#ffffff",
+                    "on-surface": "#111c2c",
+                    "surface-container-lowest": "#ffffff",
+                    "primary-fixed": "#d6e3ff",
+                    "tertiary-container": "#30363c",
+                    "on-surface-variant": "#43474e",
+                    "on-secondary-fixed-variant": "#004881",
+                    "primary-container": "#1a365d",
+                    "surface": "#f9f9ff",
+                    "on-secondary": "#ffffff",
+                    "tertiary-fixed-dim": "#c1c7cf",
+                    "on-tertiary-fixed-variant": "#41474e",
+                    "error-container": "#ffdad6",
+                    "secondary-container": "#7db6ff",
+                    "on-tertiary-fixed": "#161c22",
+                    "surface-container-highest": "#d8e3fa",
+                    "surface-container-high": "#dee8ff",
+                    "secondary-fixed-dim": "#a2c9ff",
+                    "outline": "#74777f",
+                    "secondary-fixed": "#d3e4ff",
+                    "error": "#ba1a1a",
+                    "on-error-container": "#93000a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "container-max": "1280px",
+                    "lg": "32px",
+                    "xl": "48px",
+                    "md": "24px",
+                    "sm": "16px",
+                    "xs": "8px",
+                    "gutter": "24px",
+                    "base": "4px"
+            },
+            "fontFamily": {
+                    "body-sm": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "label-md": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid #e2e8f0;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #1a365d;
+            box-shadow: 0 0 0 2px rgba(26, 54, 93, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen">
+<!-- TopNavBar -->
+<header class="sticky top-0 z-50 flex justify-between items-center w-full px-md py-xs bg-surface dark:bg-surface border-b border-outline-variant dark:border-outline">
+<div class="flex items-center gap-sm">
+<span class="text-headline-sm font-headline-sm font-bold text-primary dark:text-primary-fixed">LPSE Portal</span>
+</div>
+<div class="hidden md:flex flex-1 justify-center max-w-xl mx-xl px-md">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-lg pl-10 py-2 font-body-sm text-body-sm focus:ring-2 focus:ring-primary/20" placeholder="Cari layanan atau dokumen..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<div class="flex items-center gap-xs">
+<button class="p-2 rounded-full hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors cursor-pointer active:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">notifications</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors cursor-pointer active:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">help_outline</span>
+</button>
+</div>
+<div class="flex items-center gap-sm pl-md border-l border-outline-variant">
+<div class="text-right hidden sm:block">
+<p class="font-label-md text-label-md font-bold text-on-surface">Ahmad Verifikator</p>
+<p class="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Administrator</p>
+</div>
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined text-primary">person</span>
+</div>
+<button class="ml-sm font-label-md text-label-md font-bold text-primary dark:text-primary-fixed hover:underline">SSO Logout</button>
+</div>
+</div>
+</header>
+<div class="flex min-h-[calc(100vh-64px)]">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-64 flex flex-col pt-24 pb-md z-40 bg-surface-container-low dark:bg-surface-container-lowest border-r border-outline-variant dark:border-outline">
+<div class="px-md mb-xl">
+<div class="flex items-center gap-sm p-sm bg-white rounded-xl border border-outline-variant shadow-sm">
+<div class="w-8 h-8 bg-primary rounded flex items-center justify-center text-white font-black text-sm">LP</div>
+<div>
+<h2 class="text-label-md font-black text-primary dark:text-primary-fixed leading-tight">LPSE Verifier</h2>
+<p class="text-[10px] text-on-surface-variant font-medium">Official Portal</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 px-sm space-y-1">
+<a class="flex items-center gap-sm px-md py-sm cursor-pointer transition-all hover:bg-surface-variant dark:hover:bg-surface-container-highest text-on-surface-variant font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm cursor-pointer transition-all bg-secondary-container text-on-secondary-container font-semibold rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">description</span>
+<span>Pengajuan</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm cursor-pointer transition-all hover:bg-surface-variant dark:hover:bg-surface-container-highest text-on-surface-variant font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">verified_user</span>
+<span>Verifikasi</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm cursor-pointer transition-all hover:bg-surface-variant dark:hover:bg-surface-container-highest text-on-surface-variant font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">assessment</span>
+<span>Laporan</span>
+</a>
+</nav>
+<div class="px-sm mb-md">
+<button class="w-full py-3 bg-primary text-white rounded-lg font-label-md flex items-center justify-center gap-2 hover:bg-primary-container transition-colors shadow-md">
+<span class="material-symbols-outlined text-sm">add</span>
+                    New Verification
+                </button>
+</div>
+<div class="px-sm pt-md border-t border-outline-variant">
+<a class="flex items-center gap-sm px-md py-sm cursor-pointer transition-all hover:bg-surface-variant text-on-surface-variant font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm cursor-pointer transition-all hover:bg-surface-variant text-on-surface-variant font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">history</span>
+<span>Audit Trail</span>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="ml-64 flex-1 p-lg bg-background">
+<div class="max-w-4xl mx-auto">
+<div class="mb-lg">
+<h1 class="font-headline-lg text-headline-lg text-primary">Formulir Pengajuan Pemohon</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Lengkapi data diri dan unggah dokumen pendukung untuk memproses verifikasi akun LPSE Anda.</p>
+</div>
+<form class="space-y-lg">
+<!-- Section: Data Diri -->
+<section class="bg-surface-container-lowest p-lg rounded-xl border border-outline-variant shadow-sm">
+<div class="flex items-center gap-xs mb-md pb-xs border-b border-outline-variant">
+<span class="material-symbols-outlined text-primary">person_outline</span>
+<h3 class="font-headline-sm text-headline-sm text-primary">Data Diri Pemohon</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div class="space-y-xs">
+<label class="block font-label-md text-label-md text-on-surface">Nama Lengkap</label>
+<input class="w-full bg-white border border-outline-variant rounded px-md py-sm font-body-md text-body-md" readonly="" type="text" value="Ahmad Verifikator, S.Kom"/>
+</div>
+<div class="space-y-xs">
+<label class="block font-label-md text-label-md text-on-surface">NIP</label>
+<input class="w-full bg-white border border-outline-variant rounded px-md py-sm font-body-md text-body-md" readonly="" type="text" value="19920101 201503 1 001"/>
+</div>
+<div class="space-y-xs">
+<label class="block font-label-md text-label-md text-on-surface">Jabatan</label>
+<select class="w-full bg-white border border-outline-variant rounded px-md py-sm font-body-md text-body-md">
+<option>Staf Pengelola Pengadaan</option>
+<option>Pejabat Pembuat Komitmen</option>
+<option>Anggota Pokja Pemilihan</option>
+</select>
+</div>
+<div class="space-y-xs">
+<label class="block font-label-md text-label-md text-on-surface">Satuan Kerja (Satker)</label>
+<input class="w-full bg-white border border-outline-variant rounded px-md py-sm font-body-md text-body-md" placeholder="Masukkan nama Satuan Kerja" type="text"/>
+</div>
+</div>
+</section>
+<!-- Section: Pusat Unggah Dokumen -->
+<section class="bg-surface-container-lowest p-lg rounded-xl border border-outline-variant shadow-sm">
+<div class="flex items-center gap-xs mb-md pb-xs border-b border-outline-variant">
+<span class="material-symbols-outlined text-primary">cloud_upload</span>
+<h3 class="font-headline-sm text-headline-sm text-primary">Pusat Unggah Dokumen</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-md italic">Pastikan dokumen dalam format PDF dengan ukuran maksimal 2MB per file.</p>
+<div class="space-y-sm">
+<!-- File 1: Surat Permohonan -->
+<div class="flex flex-col md:flex-row md:items-center justify-between p-md border border-outline-variant rounded-lg hover:bg-surface-container-low transition-colors group">
+<div class="flex items-start gap-md">
+<div class="w-10 h-10 bg-error-container text-error rounded flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined">picture_as_pdf</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Surat Permohonan</p>
+<p class="text-[11px] text-on-surface-variant">Wajib diunggah dengan tanda tangan basah dan cap basah.</p>
+</div>
+</div>
+<div class="flex items-center gap-sm mt-sm md:mt-0">
+<button class="px-md py-2 border border-primary text-primary font-label-md rounded flex items-center gap-2 hover:bg-primary/5 transition-colors" type="button">
+<span class="material-symbols-outlined text-sm">visibility</span>
+                                        Lihat Pratinjau
+                                    </button>
+<label class="px-md py-2 bg-secondary text-white font-label-md rounded cursor-pointer hover:bg-primary transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">upload_file</span>
+                                        Pilih File
+                                        <input accept=".pdf" class="hidden" type="file"/>
+</label>
+</div>
+</div>
+<!-- File 2: Pakta Integritas -->
+<div class="flex flex-col md:flex-row md:items-center justify-between p-md border border-outline-variant rounded-lg hover:bg-surface-container-low transition-colors group">
+<div class="flex items-start gap-md">
+<div class="w-10 h-10 bg-error-container text-error rounded flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined">picture_as_pdf</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Pakta Integritas</p>
+<p class="text-[11px] text-on-surface-variant">Dokumen pernyataan integritas sesuai standar LPSE terbaru.</p>
+</div>
+</div>
+<div class="flex items-center gap-sm mt-sm md:mt-0">
+<button class="px-md py-2 border border-primary text-primary font-label-md rounded flex items-center gap-2 hover:bg-primary/5 transition-colors" type="button">
+<span class="material-symbols-outlined text-sm">visibility</span>
+                                        Lihat Pratinjau
+                                    </button>
+<label class="px-md py-2 bg-secondary text-white font-label-md rounded cursor-pointer hover:bg-primary transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">upload_file</span>
+                                        Pilih File
+                                        <input accept=".pdf" class="hidden" type="file"/>
+</label>
+</div>
+</div>
+<!-- File 3: SK Terbaru -->
+<div class="flex flex-col md:flex-row md:items-center justify-between p-md border border-outline-variant rounded-lg hover:bg-surface-container-low transition-colors group">
+<div class="flex items-start gap-md">
+<div class="w-10 h-10 bg-error-container text-error rounded flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined">picture_as_pdf</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">SK Terbaru</p>
+<p class="text-[11px] text-on-surface-variant">Surat Keputusan pengangkatan jabatan terakhir dalam format PDF.</p>
+</div>
+</div>
+<div class="flex items-center gap-sm mt-sm md:mt-0">
+<button class="px-md py-2 border border-primary text-primary font-label-md rounded flex items-center gap-2 hover:bg-primary/5 transition-colors" type="button">
+<span class="material-symbols-outlined text-sm">visibility</span>
+                                        Lihat Pratinjau
+                                    </button>
+<label class="px-md py-2 bg-secondary text-white font-label-md rounded cursor-pointer hover:bg-primary transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">upload_file</span>
+                                        Pilih File
+                                        <input accept=".pdf" class="hidden" type="file"/>
+</label>
+</div>
+</div>
+</div>
+</section>
+<!-- Form Actions -->
+<div class="flex flex-col sm:flex-row items-center justify-end gap-md pt-md">
+<button class="w-full sm:w-auto px-xl py-3 border border-outline text-on-surface-variant font-label-md rounded-lg hover:bg-surface-container-low transition-all" type="button">
+                            Simpan Draft
+                        </button>
+<button class="w-full sm:w-auto px-xl py-3 bg-primary text-white font-label-md rounded-lg shadow-lg hover:bg-primary-container transition-all flex items-center justify-center gap-2" type="submit">
+<span class="material-symbols-outlined text-sm">send</span>
+                            Kirim Permohonan
+                        </button>
+</div>
+</form>
+<!-- Information Card -->
+<div class="mt-xl p-md bg-surface-container rounded-lg border-l-4 border-primary flex gap-md">
+<span class="material-symbols-outlined text-primary shrink-0">info</span>
+<div>
+<p class="font-label-md text-label-md text-primary">Informasi Penting</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Proses verifikasi membutuhkan waktu 1-3 hari kerja sejak pengajuan dikirim. Pastikan nomor kontak Anda aktif untuk keperluan klarifikasi oleh tim verifikator.</p>
+</div>
+</div>
+</div>
+</main>
+</div>
+<script>
+        // Simple micro-interaction for file input feedback (visual only for this demo)
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', function(e) {
+                const fileName = e.target.files[0]?.name;
+                if (fileName) {
+                    const textContainer = this.closest('.group').querySelector('p.text-\[11px\]');
+                    textContainer.textContent = `Terpilih: ${fileName}`;
+                    textContainer.classList.remove('text-on-surface-variant');
+                    textContainer.classList.add('text-secondary', 'font-bold');
+                }
+            });
+        });
+
+        // Form submission prevention for demo
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Permohonan berhasil dikirim ke sistem verifikasi LPSE.');
+        });
+    </script>
+</body></html>

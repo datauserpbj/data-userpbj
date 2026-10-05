@@ -1,0 +1,2 @@
+ALTER TABLE formulir_pengajuan
+ADD COLUMN IF NOT EXISTS revisi_selesai BOOLEAN DEFAULT FALSE;
