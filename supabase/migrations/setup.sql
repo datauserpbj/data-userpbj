@@ -1,7 +1,7 @@
 -- ============================================
 -- Supabase Database Setup for Verifikasi Berkas
 -- Run this entire script in the Supabase Dashboard SQL Editor:
---   https://supabase.com/dashboard/project/ahxnszpgszbohssthveb/editor
+--   https://supabase.com/dashboard/project/azentykpgtqlsgwhstkm/editor
 -- ============================================
 
 -- Enable UUID extension
@@ -228,3 +228,8 @@ FOR EACH ROW EXECUTE FUNCTION sync_pp_from_pengajuan();
 CREATE TRIGGER trigger_delete_pp_from_pengajuan
 AFTER DELETE ON formulir_pengajuan
 FOR EACH ROW EXECUTE FUNCTION delete_pp_from_pengajuan();
+
+-- ============================================
+-- Reload schema PostgREST supaya tabel langsung terbaca oleh API
+-- ============================================
+NOTIFY pgrst, 'reload schema';

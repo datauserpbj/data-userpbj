@@ -17,14 +17,7 @@ export default function SideNavBar({ open, onClose }) {
       inactiveStyle: 'text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-container-highest',
     },
     {
-      label: 'Pengajuan Masuk',
-      icon: 'inbox',
-      path: '/pengajuan-masuk',
-      activeStyle: 'bg-secondary-container text-on-secondary-container font-semibold',
-      inactiveStyle: 'text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-container-highest',
-    },
-    {
-      label: 'Laporan',
+      label: 'Laporan PPK & PP',
       icon: 'assessment',
       path: '/laporanverifikator',
       activeStyle: 'bg-secondary-container text-on-secondary-container font-semibold',

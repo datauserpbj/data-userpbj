@@ -502,8 +502,8 @@ export default function PengajuanMasuk() {
           <span className="text-[10px] font-bold">Berkas</span>
         </button>
         <button onClick={() => navigate('/laporanverifikator')} className="flex flex-col items-center gap-1 text-on-surface-variant">
-          <span className="material-symbols-outlined">history</span>
-          <span className="text-[10px]">Riwayat</span>
+          <span className="material-symbols-outlined">assessment</span>
+          <span className="text-[10px]">Laporan</span>
         </button>
         <button onClick={() => setProfileOpen((prev) => !prev)} className="flex flex-col items-center gap-1 text-on-surface-variant relative">
           <span className="material-symbols-outlined">person</span>

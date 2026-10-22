@@ -34,7 +34,7 @@ function AppLayout({ children }) {
       <TopNavBar onToggleSidebar={toggleSidebar} sidebarOpen={sidebarOpen} />
       <div className="flex min-h-screen pt-16">
         <SideNavBar open={sidebarOpen} onClose={closeSidebar} />
-        <main className="flex-1 bg-background px-4 md:px-6 md:ml-72">
+        <main className="flex-1 min-w-0 bg-background px-4 md:px-6 md:ml-72">
           {children}
         </main>
       </div>

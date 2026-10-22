@@ -123,7 +123,7 @@ Required variables:
 supabase login
 
 # Link to your project
-supabase link --project-ref ahxnszpgszbohssthveb
+supabase link --project-ref azentykpgtqlsgwhstkm
 
 # Push migrations
 supabase db push

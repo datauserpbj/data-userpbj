@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { supabase } from '../lib/supabase.js'
+import { serializeDokumenSyarat, isMissingDokumenColumn } from '../lib/dokumen-syarat.js'
 
 const router = Router()
 
@@ -23,23 +24,34 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { nama_lengkap, nip, jabatan, satker, status_aktif } = req.body
+    const { nama_lengkap, nip, jabatan, satker, status_aktif, dokumen_syarat } = req.body
 
     if (!nama_lengkap || !nip) {
       return res.status(400).json({ error: 'Nama Lengkap dan NIP wajib diisi' })
     }
 
-    const { data, error } = await supabase
+    const body = {
+      nama_lengkap,
+      nip,
+      jabatan: jabatan || null,
+      satker: satker || null,
+      status_aktif: status_aktif || 'aktif',
+    }
+
+    let { data, error } = await supabase
       .from('pp')
-      .insert({
-        nama_lengkap,
-        nip,
-        jabatan: jabatan || null,
-        satker: satker || null,
-        status_aktif: status_aktif || 'aktif',
-      })
+      .insert({ ...body, dokumen_syarat: serializeDokumenSyarat(dokumen_syarat) })
       .select()
       .single()
+
+    if (error && isMissingDokumenColumn(error)) {
+      console.warn('Kolom dokumen_syarat belum tersedia pada tabel pp, menyimpan tanpa daftar dokumen.')
+      ;({ data, error } = await supabase
+        .from('pp')
+        .insert(body)
+        .select()
+        .single())
+    }
 
     if (error || !data) {
       console.error('Insert pp error:', error)
@@ -56,7 +68,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const { nama_lengkap, nip, jabatan, satker, status_aktif, alasan_penonaktifan } = req.body
+    const { nama_lengkap, nip, jabatan, satker, status_aktif, alasan_penonaktifan, dokumen_syarat } = req.body
 
     const { data: existing, error: fetchError } = await supabase
       .from('pp')
@@ -83,12 +95,26 @@ router.put('/:id', async (req, res) => {
       updatePayload.alasan_penonaktifan = null
     }
 
-    const { data, error } = await supabase
+    const target = dokumen_syarat === undefined
+      ? updatePayload
+      : { ...updatePayload, dokumen_syarat: serializeDokumenSyarat(dokumen_syarat) }
+
+    let { data, error } = await supabase
       .from('pp')
-      .update(updatePayload)
+      .update(target)
       .eq('id', id)
       .select()
       .single()
+
+    if (error && isMissingDokumenColumn(error)) {
+      console.warn('Kolom dokumen_syarat belum tersedia pada tabel pp, menyimpan tanpa daftar dokumen.')
+      ;({ data, error } = await supabase
+        .from('pp')
+        .update(updatePayload)
+        .eq('id', id)
+        .select()
+        .single())
+    }
 
     if (error || !data) {
       console.error('Update pp error:', error)

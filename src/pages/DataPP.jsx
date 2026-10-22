@@ -10,6 +10,8 @@ import {
   mutatePp,
   syncPpFromPengajuan,
 } from '../lib/supabase-helpers'
+import DokumenSyaratField, { DokumenSyaratBadges } from '../components/DokumenSyaratField'
+import { parseDokumenSyarat } from '../lib/dokumen-syarat'
 import Toast from '../components/Toast'
 
 export default function DataPP() {
@@ -20,7 +22,7 @@ export default function DataPP() {
   const [detailOpen, setDetailOpen] = React.useState(false)
   const [selectedPp, setSelectedPp] = React.useState(null)
   const [selectedDetail, setSelectedDetail] = React.useState(null)
-  const [form, setForm] = React.useState({ nama_lengkap: '', nip: '', jabatan: '', satker: '', status_aktif: 'aktif' })
+  const [form, setForm] = React.useState({ nama_lengkap: '', nip: '', jabatan: '', satker: '', status_aktif: 'aktif', dokumen: [] })
   const [mutasiForm, setMutasiForm] = React.useState({ satker: '', status_aktif: 'aktif', catatan: '' })
   const [alasanPenonaktifan, setAlasanPenonaktifan] = React.useState('')
   const [satkerList, setSatkerList] = React.useState([])
@@ -75,7 +77,7 @@ export default function DataPP() {
 
   const openAdd = () => {
     setSelectedPp(null)
-    setForm({ nama_lengkap: '', nip: '', jabatan: '', satker: '', status_aktif: 'aktif' })
+    setForm({ nama_lengkap: '', nip: '', jabatan: '', satker: '', status_aktif: 'aktif', dokumen: [] })
     setModalOpen(true)
   }
 
@@ -87,6 +89,7 @@ export default function DataPP() {
       jabatan: pp.jabatan || '',
       satker: pp.satker || '',
       status_aktif: pp.status_aktif || 'aktif',
+      dokumen: parseDokumenSyarat(pp.dokumen_syarat),
     })
     setAlasanPenonaktifan('')
     setModalOpen(true)
@@ -119,7 +122,7 @@ export default function DataPP() {
   const closeModal = () => {
     setModalOpen(false)
     setSelectedPp(null)
-    setForm({ nama_lengkap: '', nip: '', jabatan: '', satker: '', status_aktif: 'aktif' })
+    setForm({ nama_lengkap: '', nip: '', jabatan: '', satker: '', status_aktif: 'aktif', dokumen: [] })
   }
 
   const closeMutasi = () => {
@@ -132,7 +135,7 @@ export default function DataPP() {
     e.preventDefault()
     if (!form.nama_lengkap || !form.nip) return
 
-    const payload = { ...form }
+    const payload = { ...form, dokumen_syarat: form.dokumen }
     if (form.status_aktif === 'non-aktif') {
       payload.alasan_penonaktifan = alasanPenonaktifan
     }
@@ -414,6 +417,14 @@ export default function DataPP() {
                   />
                 </div>
               )}
+
+              {form.status_aktif !== 'non-aktif' && (
+                <DokumenSyaratField
+                  value={form.dokumen}
+                  onChange={(dokumen) => setForm({ ...form, dokumen })}
+                  jenis="pp"
+                />
+              )}
               <div className="flex flex-col md:flex-row items-center justify-end gap-sm">
                 <button type="button" onClick={closeModal} className="w-full md:w-auto px-md py-xs rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-colors">
                   Batal
@@ -538,6 +549,8 @@ export default function DataPP() {
                   <p className="font-body-sm text-body-sm text-on-surface font-medium">{selectedDetail.updated_at ? new Date(selectedDetail.updated_at).toLocaleString('id-ID') : '-'}</p>
                 </div>
               </div>
+
+              <DokumenSyaratBadges value={selectedDetail.dokumen_syarat} jenis="pp" />
 
               {selectedDetail.status_aktif === 'non-aktif' && selectedDetail.alasan_penonaktifan && (
                 <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
