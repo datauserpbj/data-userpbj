@@ -35,8 +35,7 @@ async function verify() {
   const tables = [
     'formulir_pengajuan',
     'dokumen',
-    'admin_verifikator',
-    'admin_pemohon',
+    'admin_data',
     'satker',
     'ppk',
     'pp',

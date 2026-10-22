@@ -4,6 +4,8 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import {
   getSatkerList,
+  getBidangList,
+  getJabatanList,
   getPpList,
   createPp,
   updatePp,
@@ -22,10 +24,12 @@ export default function DataPP() {
   const [detailOpen, setDetailOpen] = React.useState(false)
   const [selectedPp, setSelectedPp] = React.useState(null)
   const [selectedDetail, setSelectedDetail] = React.useState(null)
-  const [form, setForm] = React.useState({ nama_lengkap: '', nip: '', jabatan: '', satker: '', status_aktif: 'aktif', dokumen: [] })
+  const [form, setForm] = React.useState({ nama_lengkap: '', nip: '', jabatan: '', satker: '', bidang: [], status_aktif: 'aktif', dokumen: [] })
   const [mutasiForm, setMutasiForm] = React.useState({ satker: '', status_aktif: 'aktif', catatan: '' })
   const [alasanPenonaktifan, setAlasanPenonaktifan] = React.useState('')
   const [satkerList, setSatkerList] = React.useState([])
+  const [jabatanList, setJabatanList] = React.useState([])
+  const [bidangList, setBidangList] = React.useState([])
   const [loadingSatker, setLoadingSatker] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState('')
   const [statusFilter, setStatusFilter] = React.useState('all')
@@ -81,18 +85,31 @@ export default function DataPP() {
     setModalOpen(true)
   }
 
-  const openEdit = (pp) => {
+  const openEdit = async (pp) => {
     setSelectedPp(pp)
     setForm({
       nama_lengkap: pp.nama_lengkap || '',
       nip: pp.nip || '',
       jabatan: pp.jabatan || '',
       satker: pp.satker || '',
+      bidang: pp.nama_bidang ? pp.nama_bidang.split(',').map((s) => s.trim()).filter(Boolean) : [],
       status_aktif: pp.status_aktif || 'aktif',
       dokumen: parseDokumenSyarat(pp.dokumen_syarat),
     })
     setAlasanPenonaktifan('')
     setModalOpen(true)
+    if (pp.satker) {
+      try {
+        const data = await getBidangList(pp.satker)
+        setBidangList(data || [])
+      } catch (e) { setBidangList([]) }
+    } else {
+      setBidangList([])
+    }
+    try {
+      const data = await getSatkerList()
+      setSatkerList(data || [])
+    } catch (e) {}
   }
 
   const openMutasi = async (pp) => {
@@ -104,10 +121,12 @@ export default function DataPP() {
     })
     setMutasiOpen(true)
     setLoadingSatker(true)
-    try {
-      const data = await getSatkerList()
-      setSatkerList(data || [])
-    } catch (err) {
+      try {
+        const data = await getSatkerList()
+        setSatkerList(data || [])
+        const jData = await getJabatanList('pp')
+        setJabatanList(jData || [])
+      } catch (err) {
       console.error('Failed to load satker:', err)
     } finally {
       setLoadingSatker(false)
@@ -204,7 +223,7 @@ export default function DataPP() {
       <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-md mb-lg">
         <div>
-          <h2 className="font-headline-lg text-headline-lg text-primary mb-xs">Data PP</h2>
+          <h2 className="font-headline-lg text-headline-lg text-primary mb-xs">Kelola Data PP</h2>
           <p className="font-body-md text-body-md text-on-surface-variant max-w-2xl">
             Kelola data Pejabat Pengadaan (PP) dan catat mutasi pergantian instansi atau status non-aktif.
           </p>
@@ -295,11 +314,11 @@ export default function DataPP() {
                     <td className="px-2 md:px-md py-sm flex items-center justify-center">
                       <div className="relative">
                         <button
-                          onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
+                          onClick={() => (item.status_aktif === 'aktif' ? openEdit(item) : openDetail(item))}
                           className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-surface-container-low transition-all"
-                          title="Aksi"
+                          title="Update"
                         >
-                          <span className="material-symbols-outlined text-sm">more_vert</span>
+                          <span className="material-symbols-outlined text-sm">update</span>
                         </button>
                         {openMenuId === item.id && (
                           <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 w-36 bg-surface border border-outline-variant rounded-lg shadow-lg z-30 overflow-hidden">
@@ -311,15 +330,8 @@ export default function DataPP() {
                                 >
                                   <span className="material-symbols-outlined text-sm">edit</span>
                                   Edit
-                                </button>
-                                <button
-                                  onClick={() => { openMutasi(item); setOpenMenuId(null) }}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
-                                >
-                                  <span className="material-symbols-outlined text-sm">swap_horiz</span>
-                                  Mutasi
-                                </button>
-                              </>
+                                 </button>
+                               </>
                             ) : (
                               <button
                                 onClick={() => { openDetail(item); setOpenMenuId(null) }}
@@ -343,15 +355,20 @@ export default function DataPP() {
 
       {/* Add/Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 md:p-0" onClick={closeModal}>
-          <div className="w-full md:w-[500px] max-h-[90vh] flex flex-col bg-surface-container-lowest rounded-lg shadow-xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-3 md:p-md border-b border-outline-variant">
-              <h3 className="text-headline-sm font-headline-sm text-primary">{selectedPp ? 'Edit Data PP' : 'Tambah PP'}</h3>
-              <button onClick={closeModal} className="p-xs hover:bg-surface-container-low rounded-lg transition-colors">
-                <span className="material-symbols-outlined text-on-surface-variant">close</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" onClick={closeModal}>
+          <div className="w-full md:w-[520px] max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-primary text-[20px]">edit</span>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-800">{selectedPp ? 'Edit Data PP' : 'Tambah PP'}</h3>
+              </div>
+              <button onClick={closeModal} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
+                <span className="material-symbols-outlined text-slate-500 text-[20px]">close</span>
               </button>
             </div>
-            <form onSubmit={handleSave} className="p-3 md:p-md space-y-md">
+            <form onSubmit={handleSave} className="p-6 space-y-5 overflow-y-auto flex-1 min-h-0">
               <div className="space-y-xs">
                 <label className="text-label-sm text-on-surface-variant">Nama Lengkap</label>
                 <input
@@ -360,7 +377,7 @@ export default function DataPP() {
                   onChange={(e) => setForm({ ...form, nama_lengkap: e.target.value })}
                   className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary"
                   required
-                  disabled={!!selectedPp}
+                  disabled={false}
                 />
               </div>
               <div className="space-y-xs">
@@ -371,30 +388,68 @@ export default function DataPP() {
                   onChange={(e) => setForm({ ...form, nip: e.target.value })}
                   className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary"
                   required
-                  disabled={!!selectedPp}
+                  disabled={false}
                 />
               </div>
               <div className="space-y-xs">
                 <label className="text-label-sm text-on-surface-variant">Jabatan</label>
-                <input
-                  type="text"
+                <select
                   value={form.jabatan}
                   onChange={(e) => setForm({ ...form, jabatan: e.target.value })}
                   className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary"
-                  disabled={!!selectedPp}
-                />
+                >
+                  {jabatanList.length > 0 ? (
+                    jabatanList.map((item) => (
+                      <option key={item.id} value={item.nama}>
+                        {item.nama}
+                      </option>
+                    ))
+                   ) : (
+                     <>
+                       <option value="Pejabat Pengadaan (PP)">Pejabat Pengadaan (PP)</option>
+                       <option value="Pejabat Pembuat Komitmen (PPK)">Pejabat Pembuat Komitmen (PPK)</option>
+                     </>
+                   )}
+                </select>
               </div>
               <div className="space-y-xs">
                 <label className="text-label-sm text-on-surface-variant">Satuan Kerja</label>
-                <input
-                  type="text"
+                <select
                   value={form.satker}
-                  onChange={(e) => setForm({ ...form, satker: e.target.value })}
+                  onChange={async (e) => {
+                    const v = e.target.value
+                    setForm({ ...form, satker: v, bidang: [] })
+                    if (v) {
+                      try {
+                        const data = await getBidangList(v)
+                        setBidangList(data || [])
+                      } catch (err) { setBidangList([]) }
+                    } else {
+                      setBidangList([])
+                    }
+                  }}
                   className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary"
-                  disabled={!!selectedPp}
-                />
+                >
+                  <option value="">Pilih Satuan Kerja</option>
+                  {satkerList.map((item) => (
+                    <option key={item.id} value={item.nama}>
+                      {item.nama}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div className="space-y-xs">
+                {!(form.satker || '').toLowerCase().includes('kecamatan') && !(form.satker || '').toLowerCase().includes('upt puskesmas') && (
+                  <div className="space-y-2 max-h-40 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
+                    {bidangList.map((item) => (
+                      <label key={item.id} className="flex items-center gap-2.5 cursor-pointer group">
+                        <input type="checkbox" checked={Array.isArray(form.bidang) && form.bidang.includes(item.nama)} onChange={(e) => { const checked = e.target.checked; setForm((prev) => ({ ...prev, bidang: checked ? [...(prev.bidang || []), item.nama] : (prev.bidang || []).filter((b) => b !== item.nama) })) }} className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary/30" />
+                        <span className="text-sm text-slate-700 group-hover:text-slate-900">{item.nama}</span>
+                      </label>
+                    ))}
+                     {bidangList.length === 0 && (<p className="text-sm text-slate-500">Pilih Satuan Kerja terlebih dahulu</p>)}
+                  </div>
+                 )}
+                <div className="space-y-xs">
                 <label className="text-label-sm text-on-surface-variant">Status Aktif</label>
                 <select
                   value={form.status_aktif}

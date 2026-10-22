@@ -128,6 +128,7 @@ export default function LaporanVerifikator() {
       nip: item.nip || '-',
       jabatan: item.jabatan || '-',
       satker: (item.satker || '-').trim() || '-',
+      bidang: item.nama_bidang || '-',
       status_aktif: item.status_aktif === 'non-aktif' ? 'non-aktif' : 'aktif',
       alasan_penonaktifan: item.alasan_penonaktifan || '',
       dokumen_syarat: item.dokumen_syarat || '',
@@ -797,14 +798,14 @@ export default function LaporanVerifikator() {
 
       {/* Modal detail */}
       {detailItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3" onClick={() => setDetailItem(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-4" onClick={() => setDetailItem(null)}>
           <div
-            className="w-full md:w-[520px] max-h-[90vh] flex flex-col bg-white rounded-xl shadow-2xl overflow-hidden popup-enter"
+            className="w-full md:w-[560px] max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden popup-enter"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-md border-b border-outline-variant">
+            <div className="flex items-center justify-between px-md py-sm border-b border-outline-variant/60 bg-surface-container-lowest">
               <div className="flex items-center gap-sm min-w-0">
-                <span className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${JENIS_META[detailItem.jenis].avatar}`}>
+                <span className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${JENIS_META[detailItem.jenis].avatar}`}>
                   <span className="material-symbols-outlined">{JENIS_META[detailItem.jenis].icon}</span>
                 </span>
                 <div className="min-w-0">
@@ -812,27 +813,31 @@ export default function LaporanVerifikator() {
                   <p className="text-label-sm text-on-surface-variant">{JENIS_META[detailItem.jenis].nama}</p>
                 </div>
               </div>
-              <button onClick={() => setDetailItem(null)} className="p-xs hover:bg-surface-container-low rounded-lg transition-colors shrink-0">
+              <button onClick={() => setDetailItem(null)} className="p-xs hover:bg-surface-container-low rounded-full transition-colors shrink-0">
                 <span className="material-symbols-outlined text-on-surface-variant">close</span>
               </button>
             </div>
 
             <div className="p-md space-y-md overflow-y-auto custom-scrollbar">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
-                <div>
-                  <p className="text-label-sm text-on-surface-variant">NIP</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
+                <div className="bg-surface-container-low rounded-xl p-sm">
+                  <p className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-1">NIP</p>
                   <p className="text-body-sm text-on-surface font-medium">{detailItem.nip}</p>
                 </div>
-                <div>
-                  <p className="text-label-sm text-on-surface-variant">Jabatan</p>
+                <div className="bg-surface-container-low rounded-xl p-sm">
+                  <p className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-1">Jabatan</p>
                   <p className="text-body-sm text-on-surface font-medium">{detailItem.jabatan}</p>
                 </div>
-                <div>
-                  <p className="text-label-sm text-on-surface-variant">Satuan Kerja</p>
+                <div className="bg-surface-container-low rounded-xl p-sm">
+                  <p className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-1">Satuan Kerja</p>
                   <p className="text-body-sm text-on-surface font-medium">{detailItem.satker}</p>
                 </div>
-                <div>
-                  <p className="text-label-sm text-on-surface-variant">Status Aktif</p>
+                <div className="bg-surface-container-low rounded-xl p-sm">
+                  <p className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-1">Bidang/Bagian</p>
+                  <p className="text-body-sm text-on-surface font-medium">{detailItem.bidang}</p>
+                </div>
+                <div className="bg-surface-container-low rounded-xl p-sm">
+                  <p className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-1">Status Aktif</p>
                   <span className={`inline-flex items-center gap-xs px-sm py-1 rounded-full text-[11px] font-bold border ${getStatusBadge(detailItem.status_aktif)}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${detailItem.status_aktif === 'aktif' ? 'bg-green-500' : 'bg-red-500'}`}></span>
                     {detailItem.status_aktif === 'aktif' ? 'Aktif' : 'Non-Aktif'}
@@ -841,25 +846,25 @@ export default function LaporanVerifikator() {
               </div>
 
               {detailItem.alasan_penonaktifan && (
-                <div className="p-md bg-red-50 border border-red-200 rounded-lg">
+                <div className="p-md bg-red-50 border border-red-200 rounded-xl">
                   <p className="text-label-sm text-red-700 font-bold mb-xs">Alasan Penonaktifan</p>
                   <p className="text-body-sm text-red-700">{detailItem.alasan_penonaktifan}</p>
                 </div>
               )}
 
-              <div>
-                <p className="text-label-sm text-on-surface-variant mb-xs">Dokumen Persyaratan</p>
+              <div className="bg-surface-container-low rounded-xl p-sm">
+                <p className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-xs">Dokumen Persyaratan</p>
                 <DokumenSyaratBadges value={detailItem.dokumen_syarat} jabatan={detailItem.jabatan} jenis={detailItem.jenis} />
                 {renderDokumenBadge(detailItem)}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-md pt-sm border-t border-outline-variant">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm pt-sm border-t border-outline-variant/60">
                 <div>
-                  <p className="text-label-sm text-on-surface-variant">Tanggal Terdaftar</p>
+                  <p className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-1">Tanggal Terdaftar</p>
                   <p className="text-body-sm text-on-surface font-medium">{formatDateTime(detailItem.created_at)}</p>
                 </div>
                 <div>
-                  <p className="text-label-sm text-on-surface-variant">Terakhir Diperbarui</p>
+                  <p className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-1">Terakhir Diperbarui</p>
                   <p className="text-body-sm text-on-surface font-medium">{formatDateTime(detailItem.updated_at)}</p>
                 </div>
               </div>

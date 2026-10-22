@@ -303,7 +303,15 @@ export default function PengajuanForm() {
 
       <nav className="sticky top-0 z-50 flex justify-between items-center w-full px-md py-xs glass-nav">
         <div className="flex items-center gap-md">
-          <span className="text-headline-sm font-headline-sm font-bold text-primary">LPSE DocVerify</span>
+          <div className="flex items-center gap-sm">
+            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-on-primary" style={{ fontVariationSettings: "'FILL' 1" }}>shopping_cart</span>
+            </div>
+            <div className="leading-none">
+              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-0.5">Sistem Informasi</p>
+              <span className="text-headline-sm font-headline-sm font-bold text-primary">PPK &amp; PP</span>
+            </div>
+          </div>
           <div className="hidden md:flex items-center gap-lg ml-lg">
             <a className="text-primary font-bold border-b-2 border-primary pb-1 font-body-md text-body-md" href="#">Formulir Pengajuan</a>
             <a className="text-on-surface-variant hover:bg-surface-container-low px-xs py-base transition-colors font-body-md text-body-md cursor-pointer" onClick={() => navigate('/kolom-cek-status')}>Cek Status Pengajuan</a>

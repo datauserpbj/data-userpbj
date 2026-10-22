@@ -223,9 +223,17 @@ export default function CekStatus() {
     <div className="page-gradient-pengajuan">
       <nav className="sticky top-0 z-50 flex justify-between items-center w-full px-md py-xs glass-nav">
         <div className="flex items-center gap-md">
-          <span className="text-headline-sm font-headline-sm font-bold text-primary">LPSE DocVerify</span>
+          <div className="flex items-center gap-sm">
+            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-on-primary" style={{ fontVariationSettings: "'FILL' 1" }}>shopping_cart</span>
+            </div>
+            <div className="leading-none">
+              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-0.5">Sistem Informasi</p>
+              <span className="text-headline-sm font-headline-sm font-bold text-primary">PPK &amp; PP</span>
+            </div>
+          </div>
           <div className="hidden md:flex items-center gap-lg ml-lg">
-            <a className="text-on-surface-variant hover:bg-surface-container-low px-xs py-base transition-colors font-body-md text-body-md cursor-pointer" onClick={() => navigate('/')}>Formulir Pengajuan</a>
+            <a className="text-on-surface-variant hover:bg-surface-container-low px-xs py-base transition-colors font-body-md text-body-md cursor-pointer" onClick={() => navigate('/formulir-pengajuan')}>Formulir Pengajuan</a>
             <a className="text-primary font-bold border-b-2 border-primary pb-1 font-body-md text-body-md" href="#">Cek Status Pengajuan</a>
           </div>
         </div>
@@ -239,7 +247,7 @@ export default function CekStatus() {
         </div>
         {mobileMenuOpen && (
           <div className="absolute top-full left-0 right-0 bg-white/90 backdrop-blur-md border-b border-outline-variant md:hidden">
-            <a className="block w-full text-left px-md py-sm text-on-surface-variant hover:bg-surface-container-low font-body-md text-body-md cursor-pointer" onClick={() => { setMobileMenuOpen(false); navigate('/') }}>Formulir Pengajuan</a>
+            <a className="block w-full text-left px-md py-sm text-on-surface-variant hover:bg-surface-container-low font-body-md text-body-md cursor-pointer" onClick={() => { setMobileMenuOpen(false); navigate('/formulir-pengajuan') }}>Formulir Pengajuan</a>
             <a className="block w-full text-left px-md py-sm text-primary font-bold border-b border-outline-variant font-body-md text-body-md" href="#">Cek Status Pengajuan</a>
           </div>
         )}

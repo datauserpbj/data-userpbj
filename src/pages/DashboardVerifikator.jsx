@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { getSatkerList, getPpkList, getPpList, createPpk, createPp } from '../lib/supabase-helpers'
+import { getSatkerList, getPpkList, getPpList, createPpk, createPp, getBidangList } from '../lib/supabase-helpers'
 import DokumenSyaratField, { DokumenSyaratBadges } from '../components/DokumenSyaratField'
 import { getDokumenSyaratList, isJabatanPp } from '../lib/dokumen-syarat'
 import Toast from '../components/Toast'
@@ -15,10 +15,13 @@ export default function DashboardVerifikator() {
     nip: '',
     jabatan: '',
     satker: '',
+    bidang: [],
     status_aktif: 'aktif',
     dokumen: [],
   })
   const [satkerList, setSatkerList] = React.useState([])
+  const [bidangList, setBidangList] = React.useState([])
+  const [loadingBidang, setLoadingBidang] = React.useState(false)
   const [savingPpkpp, setSavingPpkpp] = React.useState(false)
   const [toast, setToast] = React.useState({ open: false, message: '', type: 'success' })
   const [opdDetail, setOpdDetail] = React.useState(null)
@@ -61,6 +64,7 @@ export default function DashboardVerifikator() {
       nip: '',
       jabatan: 'Pejabat Pembuat Komitmen (PPK)',
       satker: '',
+      bidang: [],
       status_aktif: 'aktif',
       dokumen: [],
     })
@@ -87,6 +91,26 @@ export default function DashboardVerifikator() {
       jabatan,
       dokumen: prev.dokumen.filter(key => allowedKeys.includes(key)),
     }))
+  }
+
+  const SATKER_BIDANG_MAP = React.useMemo(() => ({}), [])
+
+  const handleSatkerChange = async (value) => {
+    setPpkppForm(prev => ({ ...prev, satker: value, bidang: [] }))
+    if (!value) {
+      setBidangList([])
+      return
+    }
+    setLoadingBidang(true)
+    try {
+      const data = await getBidangList(value)
+      setBidangList(data || [])
+    } catch (err) {
+      console.error('Error loading bidang:', err)
+      setBidangList([])
+    } finally {
+      setLoadingBidang(false)
+    }
   }
 
   const handleSavePpkpp = async (e) => {
@@ -264,7 +288,7 @@ export default function DashboardVerifikator() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-md mb-md">
         <div>
-          <h2 className="font-headline-lg text-headline-lg text-primary mb-xs">Ringkasan Verifikator</h2>
+          <h2 className="font-headline-lg text-headline-lg text-primary mb-xs">Ringkasan Data PPK/PP</h2>
           <p className="font-body-md text-body-md text-on-surface-variant">
             Selamat datang kembali, {user?.nama_lengkap || 'Pengguna'}. Pantau dan kelola data PPK dan PP pada setiap OPD di sini.
           </p>
@@ -533,15 +557,14 @@ export default function DashboardVerifikator() {
                  <tr className="border-b border-outline-variant">
                    <th className="text-left text-label-sm text-on-surface-variant font-medium py-2 px-2">Nama</th>
                    <th className="text-left text-label-sm text-on-surface-variant font-medium py-2 px-2 hidden md:table-cell">NIP</th>
-                   <th className="text-left text-label-sm text-on-surface-variant font-medium py-2 px-2 hidden lg:table-cell">Satuan Kerja</th>
-                   <th className="text-left text-label-sm text-on-surface-variant font-medium py-2 px-2">Keterangan</th>
-                   <th className="text-right text-label-sm text-on-surface-variant font-medium py-2 px-2">Tanggal</th>
+                    <th className="text-left text-label-sm text-on-surface-variant font-medium py-2 px-2 hidden lg:table-cell">Satuan Kerja</th>
+                    <th className="text-right text-label-sm text-on-surface-variant font-medium py-2 px-2">Tanggal</th>
                  </tr>
                </thead>
                <tbody>
                  {paginatedActivities.length === 0 ? (
                    <tr>
-                     <td colSpan={5} className="text-body-sm text-on-surface-variant py-4 text-center">Belum ada data PPK/PP.</td>
+                      <td colSpan={4} className="text-body-sm text-on-surface-variant py-4 text-center">Belum ada data PPK/PP.</td>
                    </tr>
                  ) : (
                    paginatedActivities.map(item => (
@@ -570,21 +593,8 @@ export default function DashboardVerifikator() {
                          </div>
                        </td>
                        <td className="py-3 px-2 hidden md:table-cell text-body-sm text-on-surface-variant">{item.nip || '-'}</td>
-                       <td className="py-3 px-2 hidden lg:table-cell text-body-sm text-on-surface-variant truncate max-w-[200px]">{item.satker}</td>
-                       <td className="py-3 px-2">
-                         <span
-                           className={`inline-flex items-center gap-xs px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                             item.status_aktif === 'non-aktif'
-                               ? 'bg-red-50 text-red-700 border border-red-200'
-                               : item.jenis === 'PP'
-                                 ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                 : 'bg-blue-50 text-blue-700 border border-blue-200'
-                           }`}
-                         >
-                           {item.keterangan}
-                         </span>
-                       </td>
-                       <td className="py-3 px-2 text-right text-[11px] text-on-surface-variant whitespace-nowrap">{formatDateTime(item.waktu)}</td>
+                         <td className="py-3 px-2 hidden lg:table-cell text-body-sm text-on-surface-variant truncate max-w-[200px]">{item.satker}</td>
+                        <td className="py-3 px-2 text-right text-[11px] text-on-surface-variant whitespace-nowrap">{formatDateTime(item.waktu)}</td>
                      </tr>
                    ))
                  )}
@@ -786,63 +796,68 @@ export default function DashboardVerifikator() {
 
       {/* Modal Tambah PPK / PP */}
       {ppkppOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 md:p-0" onClick={closePpkppModal}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" onClick={closePpkppModal}>
           <div
-            className="w-full md:w-[500px] max-h-[90vh] flex flex-col bg-surface-container-lowest rounded-lg shadow-xl overflow-y-auto"
+            className="w-full md:w-[520px] max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-3 md:p-md border-b border-outline-variant">
-              <h3 className="text-headline-sm font-headline-sm text-primary">
-                Tambah {isJabatanPp(ppkppForm.jabatan) ? 'PP' : 'PPK'}
-              </h3>
-              <button onClick={closePpkppModal} className="p-xs hover:bg-surface-container-low rounded-lg transition-colors">
-                <span className="material-symbols-outlined text-on-surface-variant">close</span>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-primary text-[20px]">person_add</span>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-800">
+                  Tambah PPK/PP
+                </h3>
+              </div>
+              <button onClick={closePpkppModal} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
+                <span className="material-symbols-outlined text-slate-500 text-[20px]">close</span>
               </button>
             </div>
 
-            <div className="p-3 md:p-md">
-              <form onSubmit={handleSavePpkpp} className="space-y-md">
-                <div className="space-y-xs">
-                  <label className="text-label-sm text-on-surface-variant">Nama Lengkap</label>
+            <div className="p-6 overflow-y-auto flex-1 min-h-0">
+              <form onSubmit={handleSavePpkpp} className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-600">Nama Lengkap</label>
                   <input
                     type="text"
                     value={ppkppForm.nama_lengkap}
                     onChange={(e) => setPpkppForm({ ...ppkppForm, nama_lengkap: e.target.value })}
-                    className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition"
                     placeholder="Nama lengkap sesuai KTP"
                     required
                   />
                 </div>
-                <div className="space-y-xs">
-                  <label className="text-label-sm text-on-surface-variant">NIP</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-600">NIP</label>
                   <input
                     type="text"
                     inputMode="numeric"
                     maxLength={18}
                     value={ppkppForm.nip}
                     onChange={(e) => setPpkppForm({ ...ppkppForm, nip: e.target.value.replace(/\D/g, '') })}
-                    className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition"
                     placeholder="18 digit NIP"
                     required
                   />
                 </div>
-                <div className="space-y-xs">
-                  <label className="text-label-sm text-on-surface-variant">Jabatan</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-600">Jabatan</label>
                   <select
                     value={ppkppForm.jabatan}
                     onChange={(e) => handleJabatanChange(e.target.value)}
-                    className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition"
                   >
                     <option value="Pejabat Pembuat Komitmen (PPK)">Pejabat Pembuat Komitmen (PPK)</option>
                     <option value="Pejabat Pengadaan (PP)">Pejabat Pengadaan (PP)</option>
                   </select>
                 </div>
-                <div className="space-y-xs">
-                  <label className="text-label-sm text-on-surface-variant">Satuan Kerja</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-600">Satuan Kerja</label>
                   <select
                     value={ppkppForm.satker}
-                    onChange={(e) => setPpkppForm({ ...ppkppForm, satker: e.target.value })}
-                    className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                    onChange={(e) => handleSatkerChange(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition"
                   >
                     <option value="">Pilih Satuan Kerja</option>
                     {satkerList.map((item) => (
@@ -852,23 +867,56 @@ export default function DashboardVerifikator() {
                     ))}
                   </select>
                 </div>
-                <DokumenSyaratField
+                 {!(ppkppForm.satker || '').toLowerCase().includes('kecamatan') && !(ppkppForm.satker || '').toLowerCase().includes('upt puskesmas') && (
+                 <div className="space-y-1.5">
+                   <label className="text-xs font-medium text-slate-600">Bidang/Bagian</label>
+                   {loadingBidang ? (
+                    <p className="text-sm text-slate-500 py-2">Memuat...</p>
+                  ) : (
+                    <div className="space-y-2 max-h-40 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
+                      {bidangList.map((item) => (
+                        <label key={item.id} className="flex items-center gap-2.5 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={ppkppForm.bidang.includes(item.nama)}
+                            onChange={(e) => {
+                              const checked = e.target.checked
+                              setPpkppForm((prev) => ({
+                                ...prev,
+                                bidang: checked
+                                  ? [...prev.bidang, item.nama]
+                                  : prev.bidang.filter((b) => b !== item.nama),
+                              }))
+                            }}
+                            className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary/30"
+                          />
+                          <span className="text-sm text-slate-700 group-hover:text-slate-900">{item.nama}</span>
+                        </label>
+                      ))}
+                      {bidangList.length === 0 && (
+                        <p className="text-sm text-slate-500">Pilih Satuan Kerja terlebih dahulu</p>
+                      )}
+                    </div>
+                  )}
+                  </div>
+                  )}
+                  <DokumenSyaratField
                   value={ppkppForm.dokumen}
                   onChange={(dokumen) => setPpkppForm({ ...ppkppForm, dokumen })}
                   jabatan={ppkppForm.jabatan}
                 />
-                <div className="flex flex-col md:flex-row items-center justify-end gap-sm">
+                <div className="flex flex-col md:flex-row items-center justify-end gap-2 pt-2">
                   <button
                     type="button"
                     onClick={closePpkppModal}
-                    className="w-full md:w-auto px-md py-xs rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-colors"
+                    className="w-full md:w-auto px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors text-sm font-medium"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
                     disabled={savingPpkpp}
-                    className="w-full md:w-auto px-md py-xs rounded-lg bg-primary text-on-primary font-bold hover:bg-primary-container transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full md:w-auto px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
                   >
                     {savingPpkpp ? 'Menyimpan...' : 'Simpan'}
                   </button>

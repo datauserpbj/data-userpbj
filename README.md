@@ -20,7 +20,7 @@ verifikasi-berkas/
 │   │   └── supabase.js              # Supabase client initialization
 │   └── routes/
 │       ├── pengajuan.js             # CRUD + upload for submissions
-│       ├── auth.js                  # Login against admin_verifikator
+│       ├── auth.js                  # Login against admin_data
 │       ├── ppk.js                   # PPK CRUD + sync
 │       └── pp.js                    # PP CRUD + sync
 ├── src/
@@ -72,8 +72,7 @@ verifikasi-berkas/
 |-------|-----------|---------|
 | `formulir_pengajuan` | `id (uuid PK)`, `nama_lengkap`, `nip`, `jabatan`, `satker`, `status` (draft/submitted/verified/rejected), `alasan_ditolak`, `alasan_revisi`, `revisi_selesai`, timestamps | Main application submissions |
 | `dokumen` | `id (uuid PK)`, `formulir_id (FK)`, `jenis_dokumen`, `filename`, `filepath`, `bucket`, `path`, `size_bytes`, `uploaded_at` | Uploaded PDF documents per submission |
-| `admin_verifikator` | `id (uuid PK)`, `email (unique)`, `password_hash`, `nama_lengkap`, `role`, timestamps | Verifier admin accounts |
-| `admin_pemohon` | `id (uuid PK)`, `email (unique)`, `password_hash`, `nama_lengkap`, `satker`, `role`, timestamps | Applicant admin accounts |
+| `admin_data` | `id (uuid PK)`, `email (unique)`, `password_hash`, `nama_lengkap`, `role`, timestamps | Admin accounts |
 | `satker` | `id (uuid PK)`, `nama_satker (unique)`, `created_at` | Work units (Satuankerja) |
 | `ppk` | `id (uuid PK)`, `nama_lengkap`, `nip (unique)`, `jabatan`, `satker`, `status_aktif` (aktif/non-aktif), `alasan_penonaktifan`, timestamps | Pejabat Pembuat Komitmen registry |
 | `pp` | `id (uuid PK)`, `nama_lengkap`, `nip (unique)`, `jabatan`, `satker`, `status_aktif` (aktif/non-aktif), `alasan_penonaktifan`, timestamps | Pejabat Pengadaan registry |

@@ -113,6 +113,11 @@ function App() {
         {/* Default Route */}
         <Route path="/" element={
           <PublicRoute>
+            <LoginVerifikator />
+          </PublicRoute>
+        } />
+        <Route path="/formulir-pengajuan" element={
+          <PublicRoute>
             <PengajuanForm />
           </PublicRoute>
         } />

@@ -20,7 +20,7 @@ export default function LoginVerifikator() {
     const trimmedEmail = email.trim().toLowerCase()
     const trimmedPassword = password.trim()
 
-    const { data, error: err } = await signIn(trimmedEmail, trimmedPassword, 'admin_verifikator')
+    const { data, error: err } = await signIn(trimmedEmail, trimmedPassword, 'admin_data')
 
     if (err) {
       setError(err.message)
@@ -36,8 +36,8 @@ export default function LoginVerifikator() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md p-8 bg-surface rounded-xl shadow-lg border border-outline-variant">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-primary">Login Verifikator</h1>
-          <p className="text-on-surface-variant mt-2">Masuk sebagai admin verifikator</p>
+          <h1 className="text-2xl font-bold text-primary">Login Admin</h1>
+          <p className="text-on-surface-variant mt-2">Masuk sebagai admin</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

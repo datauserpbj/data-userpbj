@@ -13,7 +13,7 @@ router.post('/login', async (req, res) => {
     }
 
     const { data: admin, error } = await supabase
-      .from('admin_verifikator')
+      .from('admin_data')
       .select('*')
       .ilike('email', email.toLowerCase())
       .single()
@@ -32,7 +32,7 @@ router.post('/login', async (req, res) => {
     if (isPlainText) {
       const hashed = await bcrypt.hash(password, 10)
       await supabase
-        .from('admin_verifikator')
+        .from('admin_data')
         .update({ password_hash: hashed })
         .eq('id', admin.id)
     }

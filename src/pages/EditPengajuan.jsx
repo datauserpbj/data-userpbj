@@ -309,7 +309,7 @@ export default function EditPengajuan() {
         <div className="flex items-center gap-md">
           <span className="text-headline-sm font-headline-sm font-bold text-primary">LPSE Portal</span>
           <div className="hidden md:flex items-center gap-lg ml-lg">
-            <a className="text-on-surface-variant hover:bg-surface-container-low px-xs py-base transition-colors font-body-md text-body-md cursor-pointer" onClick={() => navigate('/')}>Formulir Pengajuan</a>
+            <a className="text-on-surface-variant hover:bg-surface-container-low px-xs py-base transition-colors font-body-md text-body-md cursor-pointer" onClick={() => navigate('/formulir-pengajuan')}>Formulir Pengajuan</a>
             <a className="text-primary font-bold border-b-2 border-primary pb-1 font-body-md text-body-md" href="#">Edit Pengajuan</a>
           </div>
         </div>

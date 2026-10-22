@@ -37,9 +37,9 @@ CREATE TABLE IF NOT EXISTS dokumen (
 );
 
 -- ============================================
--- Table: admin_verifikator
+-- Table: admin_data
 -- ============================================
-CREATE TABLE IF NOT EXISTS admin_verifikator (
+CREATE TABLE IF NOT EXISTS admin_data (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
@@ -50,18 +50,17 @@ CREATE TABLE IF NOT EXISTS admin_verifikator (
 );
 
 -- ============================================
--- Table: admin_pemohon
+-- Admin accounts
 -- ============================================
-CREATE TABLE IF NOT EXISTS admin_pemohon (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  nama_lengkap TEXT NOT NULL,
-  satker TEXT,
-  role TEXT DEFAULT 'pemohon',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- Jalankan migration ini untuk reset akun admin.
+-- Password default: admin123 (akan di-hash otomatis oleh aplikasi saat login pertama)
+
+TRUNCATE TABLE admin_data RESTART IDENTITY;
+
+INSERT INTO admin_data (email, password_hash, nama_lengkap, role)
+VALUES
+  ('kantorpbj1@gmail.com', 'admin123', 'Junaidi', 'verifikator'),
+  ('admin@lpse.bungo.go.id', 'admin123', 'Administrator LPSE', 'verifikator');
 
 -- ============================================
 -- Table: satker
@@ -110,6 +109,130 @@ ALTER TABLE ppk ADD COLUMN IF NOT EXISTS alasan_penonaktifan TEXT;
 ALTER TABLE pp ADD COLUMN IF NOT EXISTS alasan_penonaktifan TEXT;
 
 -- ============================================
+-- Table: bidang (linked to satker)
+-- ============================================
+CREATE TABLE IF NOT EXISTS bidang (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  kode_satker INTEGER,
+  nama_satker TEXT NOT NULL,
+  nama_bidang TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE (kode_satker, nama_bidang)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bidang_satker ON bidang(nama_satker);
+
+-- Seed sample bidang/bagian for every existing satker
+INSERT INTO bidang (kode_satker, nama_satker, nama_bidang)
+SELECT s kode_satker, s,nama_satker, b,nama_bidang
+FROM satker s
+CROSS JOIN (VALUES
+  ('Bidang Umum'),
+  ('Bidang Keuangan'),
+  ('Bidang Pengadaan'),
+  ('Bidang Perencanaan')
+) AS b(nama_bidang)
+ON CONFLICT (kode_satker, nama_bidang) DO NOTHING;
+
+-- RLS for bidang
+ALTER TABLE bidang ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "bidang_select_all" ON bidang;
+CREATE POLICY "bidang_select_all" ON bidang
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "bidang_insert_auth" ON bidang;
+CREATE POLICY "bidang_insert_auth" ON bidang
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "bidang_update_auth" ON bidang;
+CREATE POLICY "bidang_update_auth" ON bidang
+  FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "bidang_delete_auth" ON bidang;
+CREATE POLICY "bidang_delete_auth" ON bidang
+  FOR DELETE USING (auth.role() = 'authenticated');
+
+-- ============================================
+-- Add nama_bidang column to ppk and pp
+-- ============================================
+ALTER TABLE ppk ADD COLUMN IF NOT EXISTS nama_bidang TEXT;
+ALTER TABLE pp ADD COLUMN IF NOT EXISTS nama_bidang TEXT;
+
+-- Backfill nama_bidang on existing ppk/pp rows based on their satker
+UPDATE ppk
+SET nama_bidang = (
+  SELECT b.nama_bidang
+  FROM bidang b
+  WHERE b.nama_satker = ppk.satker
+  ORDER BY b.nama_bidang
+  LIMIT 1
+)
+WHERE nama_bidang IS NULL;
+
+UPDATE pp
+SET nama_bidang = (
+  SELECT b,nama_bidang
+  FROM bidang b
+  WHERE b,nama_satker = pp.satker
+  ORDER BY b,nama_bidang
+  LIMIT 1
+)
+WHERE nama_bidang IS NULL;
+
+-- ============================================
+-- Fix missing defaults on ppk/pp id and timestamps
+-- ============================================
+ALTER TABLE ppk ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ALTER TABLE ppk ALTER COLUMN created_at SET DEFAULT now();
+ALTER TABLE ppk ALTER COLUMN updated_at SET DEFAULT now();
+
+ALTER TABLE pp ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ALTER TABLE pp ALTER COLUMN created_at SET DEFAULT now();
+ALTER TABLE pp ALTER COLUMN updated_at SET DEFAULT now();
+
+UPDATE ppk SET id = gen_random_uuid() WHERE id IS NULL;
+UPDATE ppk SET created_at = now() WHERE created_at IS NULL;
+UPDATE ppk SET updated_at = now() WHERE updated_at IS NULL;
+
+UPDATE pp SET id = gen_random_uuid() WHERE id IS NULL;
+UPDATE pp SET created_at = now() WHERE created_at IS NULL;
+UPDATE pp SET updated_at = now() WHERE updated_at IS NULL;
+
+-- ============================================
+-- Table: ppk_history
+-- ============================================
+CREATE TABLE IF NOT EXISTS ppk_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ppk_id UUID,
+  jabatan TEXT,
+  satker TEXT,
+  bidang TEXT,
+  changed_at TIMESTAMPTZ DEFAULT now(),
+  changed_by UUID
+);
+
+CREATE INDEX IF NOT EXISTS idx_ppk_history_ppk_id ON ppk_history(ppk_id);
+
+-- Trigger to log changes
+CREATE OR REPLACE FUNCTION log_ppk_changes()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF (OLD.jabatan IS DISTINCT FROM NEW.jabatan OR OLD.satker IS DISTINCT FROM NEW.satker OR OLD.nama_bidang IS DISTINCT FROM NEW.nama_bidang) THEN
+    INSERT INTO ppk_history (ppk_id, jabatan, satker, bidang)
+    VALUES (NEW.id, NEW.jabatan, NEW.satker, NEW.nama_bidang);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS ppk_changes_trigger ON ppk;
+CREATE TRIGGER ppk_changes_trigger
+AFTER UPDATE ON ppk
+FOR EACH ROW
+EXECUTE FUNCTION log_ppk_changes();
+
+-- ============================================
 -- Unique constraints
 -- ============================================
 ALTER TABLE pp ADD CONSTRAINT IF NOT EXISTS pp_nip_unique UNIQUE (nip);
@@ -121,8 +244,7 @@ ALTER TABLE ppk ADD CONSTRAINT IF NOT EXISTS ppk_nip_unique UNIQUE (nip);
 CREATE INDEX IF NOT EXISTS idx_formulir_status ON formulir_pengajuan(status);
 CREATE INDEX IF NOT EXISTS idx_formulir_nip ON formulir_pengajuan(nip);
 CREATE INDEX IF NOT EXISTS idx_dokumen_formulir ON dokumen(formulir_id);
-CREATE INDEX IF NOT EXISTS idx_admin_verifikator_email ON admin_verifikator(email);
-CREATE INDEX IF NOT EXISTS idx_admin_pemohon_email ON admin_pemohon(email);
+CREATE INDEX IF NOT EXISTS idx_admin_data_email ON admin_data(email);
 CREATE INDEX IF NOT EXISTS idx_satker_nama ON satker(nama_satker);
 
 -- ============================================

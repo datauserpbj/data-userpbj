@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS dokumen (
   uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Admin Verifikator Table
-CREATE TABLE IF NOT EXISTS admin_verifikator (
+-- Admin Data Table
+CREATE TABLE IF NOT EXISTS admin_data (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
@@ -45,28 +45,14 @@ CREATE TABLE IF NOT EXISTS admin_verifikator (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Admin Pemohon Table
-CREATE TABLE IF NOT EXISTS admin_pemohon (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  nama_lengkap TEXT NOT NULL,
-  satker TEXT,
-  role TEXT DEFAULT 'pemohon',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
 -- Row Level Security (RLS) disabled for backend API access.
 -- Enable and add policies in Supabase Dashboard when ready.
 -- ALTER TABLE formulir_pengajuan ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE dokumen ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE admin_verifikator ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE admin_pemohon ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE admin_data ENABLE ROW LEVEL SECURITY;
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_formulir_status ON formulir_pengajuan(status);
 CREATE INDEX IF NOT EXISTS idx_formulir_nip ON formulir_pengajuan(nip);
 CREATE INDEX IF NOT EXISTS idx_dokumen_formulir ON dokumen(formulir_id);
-CREATE INDEX IF NOT EXISTS idx_admin_verifikator_email ON admin_verifikator(email);
-CREATE INDEX IF NOT EXISTS idx_admin_pemohon_email ON admin_pemohon(email);
+CREATE INDEX IF NOT EXISTS idx_admin_data_email ON admin_data(email);

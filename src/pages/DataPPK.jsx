@@ -4,6 +4,8 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import {
   getSatkerList,
+  getBidangList,
+  getJabatanList,
   getPpkList,
   createPpk,
   updatePpk,
@@ -22,10 +24,13 @@ export default function DataPPK() {
   const [selectedPpk, setSelectedPpk] = React.useState(null)
   const [selectedDetail, setSelectedDetail] = React.useState(null)
   const [detailOpen, setDetailOpen] = React.useState(false)
-  const [form, setForm] = React.useState({ nama_lengkap: '', nip: '', jabatan: '', satker: '', status_aktif: 'aktif', dokumen: [] })
-  const [mutasiForm, setMutasiForm] = React.useState({ satker: '', status_aktif: 'aktif', catatan: '' })
+  const [form, setForm] = React.useState({ nama_lengkap: '', nip: '', jabatan: '', satker: '', bidang: [], status_aktif: 'aktif', dokumen: [] })
+  const [mutasiForm, setMutasiForm] = React.useState({ satker: '', bidang: '', status_aktif: 'aktif', catatan: '' })
   const [alasanPenonaktifan, setAlasanPenonaktifan] = React.useState('')
   const [satkerList, setSatkerList] = React.useState([])
+  const [bidangList, setBidangList] = React.useState([])
+  const [ppkHistory, setPpkHistory] = React.useState([])
+  const [jabatanList, setJabatanList] = React.useState([])
   const [loadingSatker, setLoadingSatker] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState('')
   const [statusFilter, setStatusFilter] = React.useState('all')
@@ -81,33 +86,57 @@ export default function DataPPK() {
     setModalOpen(true)
   }
 
-  const openEdit = (ppk) => {
+  const openEdit = async (ppk) => {
     setSelectedPpk(ppk)
     setForm({
       nama_lengkap: ppk.nama_lengkap || '',
       nip: ppk.nip || '',
       jabatan: ppk.jabatan || '',
       satker: ppk.satker || '',
+      bidang: ppk.nama_bidang ? ppk.nama_bidang.split(',').map((s) => s.trim()).filter(Boolean) : [],
       status_aktif: ppk.status_aktif || 'aktif',
       dokumen: parseDokumenSyarat(ppk.dokumen_syarat),
     })
     setAlasanPenonaktifan('')
     setModalOpen(true)
+    if (ppk.satker) {
+      try {
+        const data = await getBidangList(ppk.satker)
+        setBidangList(data || [])
+      } catch (e) { setBidangList([]) }
+    } else {
+      setBidangList([])
+    }
+    try {
+      const data = await getSatkerList()
+      setSatkerList(data || [])
+    } catch (e) {}
   }
 
   const openMutasi = async (ppk) => {
     setSelectedPpk(ppk)
     setMutasiForm({
       satker: ppk.satker || '',
+      bidang: ppk.nama_bidang || '',
       status_aktif: ppk.status_aktif || 'aktif',
       catatan: '',
     })
+    if (ppk.satker) {
+      try {
+        const data = await getBidangList(ppk.satker)
+        setBidangList(data || [])
+      } catch (e) { setBidangList([]) }
+    } else {
+      setBidangList([])
+    }
     setMutasiOpen(true)
     setLoadingSatker(true)
-    try {
-      const data = await getSatkerList()
-      setSatkerList(data || [])
-    } catch (err) {
+      try {
+        const data = await getSatkerList()
+        setSatkerList(data || [])
+        const jData = await getJabatanList('ppk')
+        setJabatanList(jData || [])
+      } catch (err) {
       console.error('Failed to load satker:', err)
     } finally {
       setLoadingSatker(false)
@@ -117,6 +146,13 @@ export default function DataPPK() {
   const openDetail = (ppk) => {
     setSelectedDetail(ppk)
     setDetailOpen(true)
+    setPpkHistory([])
+    ;(async () => {
+      try {
+        const { data } = await supabase.from('ppk_history').select('*').eq('ppk_id', ppk.id).order('changed_at', { ascending: false })
+        setPpkHistory(data || [])
+      } catch (e) { setPpkHistory([]) }
+    })()
   }
 
   const closeModal = () => {
@@ -154,7 +190,7 @@ export default function DataPPK() {
     }
   }
 
-  const handleMutasi = async (e) => {
+const handleMutasi = async (e) => {
     e.preventDefault()
     if (!selectedPpk) return
 
@@ -162,9 +198,20 @@ export default function DataPPK() {
       await mutatePpk(selectedPpk.id, mutasiForm)
       closeMutasi()
       loadData()
-      setToast({ open: true, message: 'Mutasi berhasil dilakukan', type: 'success' })
+      setToast({ open: true, message: 'Mutasi melakukan', type: 'success' })
     } catch (err) {
       setToast({ open: true, message: err.message || 'Gagal melakukan mutasi', type: 'error' })
+    }
+  }
+
+  const handleNonaktifkan = async (ppk) => {
+    if (!window.confirm(`Yakin ingin menonaktifkan PPK: ${ppk.nama_lengkap}?`)) return
+    try {
+      await updatePpk(ppk.id, { status_aktif: 'non-aktif', alasan_penonaktifan: alasanPenonaktifan || 'Dinonaktifkan oleh administrator' })
+      loadData()
+      setToast({ open: true, message: 'PPK telah dinonaktifkan', type: 'success' })
+    } catch (err) {
+setToast({ open: true, message: err.message || 'Gagal menonaktifkan PPK', type: 'error' })
     }
   }
 
@@ -204,7 +251,7 @@ export default function DataPPK() {
       <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-md mb-lg">
         <div>
-          <h2 className="font-headline-lg text-headline-lg text-primary mb-xs">Data PPK</h2>
+          <h2 className="font-headline-lg text-headline-lg text-primary mb-xs">Kelola Data PPK</h2>
           <p className="font-body-md text-body-md text-on-surface-variant max-w-2xl">
             Kelola data Pejabat Pembuat Komitmen (PPK) dan catat mutasi pergantian instansi atau status non-aktif.
           </p>
@@ -295,42 +342,42 @@ export default function DataPPK() {
                     <td className="px-2 md:px-md py-sm flex items-center justify-center">
                       <div className="relative">
                         <button
-                          onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
+                          onClick={() => (item.status_aktif === 'aktif' ? openEdit(item) : openDetail(item))}
                           className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-surface-container-low transition-all"
-                          title="Aksi"
+                          title="Update"
                         >
-                          <span className="material-symbols-outlined text-sm">more_vert</span>
+                          <span className="material-symbols-outlined text-sm">update</span>
                         </button>
-                        {openMenuId === item.id && (
-                          <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 w-36 bg-surface border border-outline-variant rounded-lg shadow-lg z-30 overflow-hidden">
-                            {item.status_aktif === 'aktif' ? (
-                              <>
+{openMenuId === item.id && (
+                            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 w-36 bg-surface border border-outline-variant rounded-lg shadow-lg z-30 overflow-hidden">
+                              {item.status_aktif === 'aktif' ? (
+                                <>
+                                  <button
+                                    onClick={() => { openEdit(item); setOpenMenuId(null) }}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                                  >
+                                    <span className="material-symbols-outlined text-sm">edit</span>
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => { handleNonaktifkan(item); setOpenMenuId(null) }}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                                  >
+                                    <span className="material-symbols-outlined text-sm">block</span>
+                                    Non-aktifkan
+                                  </button>
+                                </>
+                              ) : (
                                 <button
-                                  onClick={() => { openEdit(item); setOpenMenuId(null) }}
+                                  onClick={() => { openDetail(item); setOpenMenuId(null) }}
                                   className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
                                 >
-                                  <span className="material-symbols-outlined text-sm">edit</span>
-                                  Edit
+                                  <span className="material-symbols-outlined text-sm">visibility</span>
+                                  Detail
                                 </button>
-                                <button
-                                  onClick={() => { openMutasi(item); setOpenMenuId(null) }}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
-                                >
-                                  <span className="material-symbols-outlined text-sm">swap_horiz</span>
-                                  Mutasi
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                onClick={() => { openDetail(item); setOpenMenuId(null) }}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
-                              >
-                                <span className="material-symbols-outlined text-sm">visibility</span>
-                                Detail
-                              </button>
-                            )}
-                          </div>
-                        )}
+                              )}
+                            </div>
+                          )}
                       </div>
                     </td>
                   </tr>
@@ -377,12 +424,17 @@ export default function DataPPK() {
 
       {/* Add/Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 md:p-0" onClick={closeModal}>
-          <div className="w-full md:w-[500px] max-h-[90vh] flex flex-col bg-surface-container-lowest rounded-lg shadow-xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-3 md:p-md border-b border-outline-variant">
-              <h3 className="text-headline-sm font-headline-sm text-primary">{selectedPpk ? 'Edit Data PPK' : 'Tambah PPK'}</h3>
-              <button onClick={closeModal} className="p-xs hover:bg-surface-container-low rounded-lg transition-colors">
-                <span className="material-symbols-outlined text-on-surface-variant">close</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" onClick={closeModal}>
+          <div className="w-full md:w-[520px] max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-primary text-[20px]">edit</span>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-800">{selectedPpk ? 'Edit Data PPK' : 'Tambah PPK'}</h3>
+              </div>
+              <button onClick={closeModal} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
+                <span className="material-symbols-outlined text-slate-500 text-[20px]">close</span>
               </button>
             </div>
             <form onSubmit={handleSave} className="p-3 md:p-md space-y-md">
@@ -394,7 +446,7 @@ export default function DataPPK() {
                   onChange={(e) => setForm({ ...form, nama_lengkap: e.target.value })}
                   className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary"
                   required
-                  disabled={!!selectedPpk}
+                  disabled={false}
                 />
               </div>
               <div className="space-y-xs">
@@ -405,30 +457,68 @@ export default function DataPPK() {
                   onChange={(e) => setForm({ ...form, nip: e.target.value })}
                   className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary"
                   required
-                  disabled={!!selectedPpk}
+                  disabled={false}
                 />
               </div>
               <div className="space-y-xs">
                 <label className="text-label-sm text-on-surface-variant">Jabatan</label>
-                <input
-                  type="text"
+                <select
                   value={form.jabatan}
                   onChange={(e) => setForm({ ...form, jabatan: e.target.value })}
                   className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary"
-                  disabled={!!selectedPpk}
-                />
+                >
+                  {jabatanList.length > 0 ? (
+                    jabatanList.map((item) => (
+                      <option key={item.id} value={item.nama}>
+                        {item.nama}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Pejabat Pembuat Komitmen (PPK)">Pejabat Pembuat Komitmen (PPK)</option>
+                      <option value="Pejabat Pengadaan (PP)">Pejabat Pengadaan (PP)</option>
+                    </>
+                  )}
+                </select>
               </div>
               <div className="space-y-xs">
                 <label className="text-label-sm text-on-surface-variant">Satuan Kerja</label>
-                <input
-                  type="text"
+                <select
                   value={form.satker}
-                  onChange={(e) => setForm({ ...form, satker: e.target.value })}
+                  onChange={async (e) => {
+                    const v = e.target.value
+                    setForm({ ...form, satker: v, bidang: [] })
+                    if (v) {
+                      try {
+                        const data = await getBidangList(v)
+                        setBidangList(data || [])
+                      } catch (err) { setBidangList([]) }
+                    } else {
+                      setBidangList([])
+                    }
+                  }}
                   className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary"
-                  disabled={!!selectedPpk}
-                />
+                >
+                  <option value="">Pilih Satuan Kerja</option>
+                  {satkerList.map((item) => (
+                    <option key={item.id} value={item.nama}>
+                      {item.nama}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div className="space-y-xs">
+                {!(form.satker || '').toLowerCase().includes('kecamatan') && !(form.satker || '').toLowerCase().includes('upt puskesmas') && (
+                  <div className="space-y-2 max-h-40 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
+                    {bidangList.map((item) => (
+                      <label key={item.id} className="flex items-center gap-2.5 cursor-pointer group">
+                        <input type="checkbox" checked={Array.isArray(form.bidang) && form.bidang.includes(item.nama)} onChange={(e) => { const checked = e.target.checked; setForm((prev) => ({ ...prev, bidang: checked ? [...(prev.bidang || []), item.nama] : (prev.bidang || []).filter((b) => b !== item.nama) })) }} className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary/30" />
+                        <span className="text-sm text-slate-700 group-hover:text-slate-900">{item.nama}</span>
+                      </label>
+                    ))}
+                     {bidangList.length === 0 && (<p className="text-sm text-slate-500">Pilih Satuan Kerja terlebih dahulu</p>)}
+                  </div>
+                 )}
+               <div className="space-y-xs">
                 <label className="text-label-sm text-on-surface-variant">Status Aktif</label>
                 <select
                   value={form.status_aktif}
@@ -488,12 +578,23 @@ export default function DataPPK() {
              <form onSubmit={handleMutasi} className="p-3 md:p-md space-y-md">
               <div className="space-y-xs">
                 <label className="text-label-sm text-on-surface-variant">Satuan Kerja Baru</label>
-                <select
-                  value={mutasiForm.satker}
-                  onChange={(e) => setMutasiForm({ ...mutasiForm, satker: e.target.value })}
-                  className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary"
-                  disabled={loadingSatker}
-                >
+                  <select
+                    value={mutasiForm.satker}
+                    onChange={async (e) => {
+                      const v = e.target.value
+                      setMutasiForm({ ...mutasiForm, satker: v, bidang: '' })
+                      if (v) {
+                        try {
+                          const data = await getBidangList(v)
+                          setBidangList(data || [])
+                        } catch (err) { setBidangList([]) }
+                      } else {
+                        setBidangList([])
+                      }
+                    }}
+                    className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                    disabled={loadingSatker}
+                  >
                   <option value="">Pilih Satuan Kerja</option>
                   {satkerList.map((item) => (
                     <option key={item.id} value={item.nama}>
@@ -514,14 +615,19 @@ export default function DataPPK() {
                 </select>
               </div>
               <div className="space-y-xs">
-                <label className="text-label-sm text-on-surface-variant">Catatan Mutasi</label>
-                <textarea
-                  value={mutasiForm.catatan}
-                  onChange={(e) => setMutasiForm({ ...mutasiForm, catatan: e.target.value })}
-                  rows={3}
-                  className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary resize-none"
-                  placeholder="Contoh: Mutasi ke Dinas Kesehatan..."
-                />
+                <label className="text-label-sm text-on-surface-variant">Bidang/Bagian</label>
+                <select
+                  value={mutasiForm.bidang}
+                  onChange={(e) => setMutasiForm({ ...mutasiForm, bidang: e.target.value })}
+                  className="w-full px-md py-sm bg-white border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                >
+                  <option value="">Pilih Bidang/Bagian</option>
+                  {bidangList.map((item) => (
+                    <option key={item.id} value={item.nama}>
+                      {item.nama}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="flex flex-col md:flex-row items-center justify-end gap-sm">
                 <button type="button" onClick={closeMutasi} className="w-full md:w-auto px-md py-xs rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-colors">
@@ -555,7 +661,7 @@ export default function DataPPK() {
                 </div>
                 <div>
                   <p className="font-body-md text-body-md text-on-surface font-bold">{selectedDetail.nama_lengkap}</p>
-                  <p className="text-label-sm text-on-surface-variant">NIP: {selectedDetail.nip}</p>
+                  <p className="text-label-sm text-on-surface-variant">Bidang/Bagian: {selectedDetail.nama_bidang || '-'}</p>
                 </div>
               </div>
 
@@ -564,10 +670,14 @@ export default function DataPPK() {
                   <p className="text-label-xs text-on-surface-variant mb-1">Jabatan</p>
                   <p className="font-body-sm text-body-sm text-on-surface font-medium">{selectedDetail.jabatan || '-'}</p>
                 </div>
-                <div className="bg-surface-container-low rounded-lg p-3">
-                  <p className="text-label-xs text-on-surface-variant mb-1">Satuan Kerja</p>
-                  <p className="font-body-sm text-body-sm text-on-surface font-medium">{selectedDetail.satker || '-'}</p>
-                </div>
+                 <div className="bg-surface-container-low rounded-lg p-3">
+                   <p className="text-label-xs text-on-surface-variant mb-1">Satuan Kerja</p>
+                   <p className="font-body-sm text-body-sm text-on-surface font-medium">{selectedDetail.satker || '-'}</p>
+                 </div>
+                 <div className="bg-surface-container-low rounded-lg p-3">
+                   <p className="text-label-xs text-on-surface-variant mb-1">Bidang/Bagian</p>
+                   <p className="font-body-sm text-body-sm text-on-surface font-medium">{selectedDetail.nama_bidang || '-'}</p>
+                 </div>
                 <div className="bg-surface-container-low rounded-lg p-3">
                   <p className="text-label-xs text-on-surface-variant mb-1">Status Aktif</p>
                   <span className={`inline-flex items-center gap-xs px-sm py-1 rounded-full text-[11px] font-bold border ${getStatusBadge(selectedDetail.status_aktif)}`}>
@@ -584,7 +694,23 @@ export default function DataPPK() {
                 </div>
               </div>
 
-              <DokumenSyaratBadges value={selectedDetail.dokumen_syarat} jenis="ppk" />
+               <div className="mt-3">
+                 <p className="text-label-xs text-on-surface-variant mb-1">Riwayat Perubahan</p>
+                 {ppkHistory.length === 0 ? (
+                   <p className="text-body-sm text-on-surface-variant">Belum ada riwayat.</p>
+                 ) : (
+                   <ul className="space-y-2">
+                     {ppkHistory.map((h) => (
+                       <li key={h.id} className="bg-surface-container-low rounded-lg p-3 text-body-sm">
+                         <p className="text-[11px] text-on-surface-variant">{new Date(h.changed_at).toLocaleString('id-ID')}</p>
+                         <p>Jabatan: {h.jabatan || '-'}</p>
+                         <p>Satuan Kerja: {h.satker || '-'}</p>
+                         <p>Bidang/Bagian: {h.bidang || '-'}</p>
+                       </li>
+                     ))}
+                   </ul>
+                 )}
+               </div>
 
               {selectedDetail.status_aktif === 'non-aktif' && selectedDetail.alasan_penonaktifan && (
                 <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">

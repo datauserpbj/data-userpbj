@@ -22,7 +22,7 @@ export default function ProfilPopup({ open, onClose }) {
 
       try {
         const { data, error } = await supabase
-          .from('admin_verifikator')
+          .from('admin_data')
           .select('*')
           .eq('id', user.id)
           .single()

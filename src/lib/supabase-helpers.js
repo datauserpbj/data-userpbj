@@ -61,6 +61,39 @@ export async function getSatkerList() {
   }))
 }
 
+export async function getBidangList(satkerNama) {
+  if (!satkerNama) return []
+  const { data, error } = await supabase
+    .from('bidang')
+    .select('nama_bidang')
+    .eq('nama_satker', satkerNama)
+    .order('nama_bidang', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching bidang:', error)
+    return []
+  }
+
+  return (data || []).map((item, index) => ({
+    id: String(index + 1),
+    nama: item.nama_bidang,
+  }))
+}
+
+export async function getJabatanList(table) {
+  const { data, error } = await supabase
+    .from(table)
+    .select('jabatan')
+
+  if (error) {
+    console.error('Error fetching jabatan:', error)
+    return []
+  }
+
+  const unique = Array.from(new Set((data || []).map(d => d.jabatan).filter(Boolean)))
+  return unique.map((nama, index) => ({ id: String(index + 1), nama }))
+}
+
 export async function createPengajuan(payload) {
   const { nama_lengkap, nip, jabatan, satker, dokumen } = payload
 
@@ -374,7 +407,7 @@ export async function getPpkList() {
 }
 
 export async function createPpk(payload) {
-  const { nama_lengkap, nip, jabatan, satker, status_aktif, dokumen_syarat } = payload
+  const { nama_lengkap, nip, jabatan, satker, bidang, status_aktif, dokumen_syarat } = payload
 
   if (!nama_lengkap || !nip) {
     throw new Error('Nama Lengkap dan NIP wajib diisi')
@@ -385,6 +418,7 @@ export async function createPpk(payload) {
     nip,
     jabatan: jabatan || null,
     satker: satker || null,
+    nama_bidang: Array.isArray(bidang) ? (bidang.length ? bidang.join(', ') : null) : (bidang || null),
     status_aktif: status_aktif || 'aktif',
   }
 
@@ -399,7 +433,7 @@ export async function createPpk(payload) {
 }
 
 export async function updatePpk(id, payload) {
-  const { nama_lengkap, nip, jabatan, satker, status_aktif, alasan_penonaktifan, dokumen_syarat } = payload
+  const { nama_lengkap, nip, jabatan, satker, bidang, status_aktif, alasan_penonaktifan, dokumen_syarat } = payload
 
   const { data: existing, error: fetchError } = await supabase
     .from('ppk')
@@ -417,6 +451,7 @@ export async function updatePpk(id, payload) {
     nip: nip || existing.nip,
     jabatan: jabatan ?? existing.jabatan,
     satker: satker ?? existing.satker,
+    nama_bidang: bidang ?? existing.nama_bidang,
     status_aktif: status_aktif || existing.status_aktif,
     updated_at: new Date().toISOString(),
   }
@@ -441,7 +476,7 @@ export async function updatePpk(id, payload) {
 }
 
 export async function mutatePpk(id, payload) {
-  const { satker, status_aktif, catatan } = payload
+  const { satker, bidang, status_aktif, catatan } = payload
 
   const { data: existing, error: fetchError } = await supabase
     .from('ppk')
@@ -459,6 +494,9 @@ export async function mutatePpk(id, payload) {
 
   if (satker !== undefined) {
     updatePayload.satker = satker
+  }
+  if (bidang !== undefined) {
+    updatePayload.nama_bidang = bidang
   }
   if (status_aktif !== undefined) {
     updatePayload.status_aktif = status_aktif
@@ -570,7 +608,7 @@ export async function getPpList() {
 }
 
 export async function createPp(payload) {
-  const { nama_lengkap, nip, jabatan, satker, status_aktif, dokumen_syarat } = payload
+  const { nama_lengkap, nip, jabatan, satker, bidang, status_aktif, dokumen_syarat } = payload
 
   if (!nama_lengkap || !nip) {
     throw new Error('Nama Lengkap dan NIP wajib diisi')
@@ -581,6 +619,7 @@ export async function createPp(payload) {
     nip,
     jabatan: jabatan || null,
     satker: satker || null,
+    nama_bidang: Array.isArray(bidang) ? (bidang.length ? bidang.join(', ') : null) : (bidang || null),
     status_aktif: status_aktif || 'aktif',
   }
 
@@ -594,7 +633,7 @@ export async function createPp(payload) {
 }
 
 export async function updatePp(id, payload) {
-  const { nama_lengkap, nip, jabatan, satker, status_aktif, alasan_penonaktifan, dokumen_syarat } = payload
+  const { nama_lengkap, nip, jabatan, satker, bidang, status_aktif, alasan_penonaktifan, dokumen_syarat } = payload
 
   const { data: existing, error: fetchError } = await supabase
     .from('pp')
@@ -611,6 +650,7 @@ export async function updatePp(id, payload) {
     nip: nip || existing.nip,
     jabatan: jabatan ?? existing.jabatan,
     satker: satker ?? existing.satker,
+    nama_bidang: bidang ?? existing.nama_bidang,
     status_aktif: status_aktif || existing.status_aktif,
     updated_at: new Date().toISOString(),
   }
