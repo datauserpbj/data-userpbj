@@ -1,6 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../lib/supabase'
 import { getSatkerList, getPpkList, getPpList, createPpk, createPp, getBidangList } from '../lib/supabase-helpers'
 import DokumenSyaratField, { DokumenSyaratBadges } from '../components/DokumenSyaratField'
 import { getDokumenSyaratList, isJabatanPp } from '../lib/dokumen-syarat'
@@ -26,8 +27,78 @@ export default function DashboardVerifikator() {
   const [toast, setToast] = React.useState({ open: false, message: '', type: 'success' })
   const [opdDetail, setOpdDetail] = React.useState(null)
   const [detailFilter, setDetailFilter] = React.useState({ type: null, id: null })
+  const [ppkHistory, setPpkHistory] = React.useState({})
+  const [ppHistory, setPpHistory] = React.useState({})
+  const detailOpdPpkRef = React.useRef([])
+  const detailOpdPpRef = React.useRef([])
   const { user, loading } = useAuth()
   const navigate = useNavigate()
+
+  const detailOpdPpk = React.useMemo(() => {
+    if (!opdDetail) return []
+    const target = (opdDetail || '').trim() || '-'
+    let result = ppkList.filter(item => ((item.satker || '-').trim() || '-') === target)
+    if (detailFilter.type === 'PPK' && detailFilter.id) {
+      result = result.filter(item => String(item.id) === String(detailFilter.id))
+    }
+    return result
+  }, [opdDetail, ppkList, detailFilter])
+
+  const detailOpdPp = React.useMemo(() => {
+    if (!opdDetail) return []
+    const target = (opdDetail || '').trim() || '-'
+    let result = ppList.filter(item => ((item.satker || '-').trim() || '-') === target)
+    if (detailFilter.type === 'PP' && detailFilter.id) {
+      result = result.filter(item => String(item.id) === String(detailFilter.id))
+    }
+    return result
+  }, [opdDetail, ppList, detailFilter])
+
+  React.useEffect(() => {
+    detailOpdPpkRef.current = detailOpdPpk
+    detailOpdPpRef.current = detailOpdPp
+  }, [detailOpdPpk, detailOpdPp, opdDetail])
+
+  React.useEffect(() => {
+    if (!opdDetail) return
+    let cancelled = false
+    const fetchAllHistory = async () => {
+      const targets = []
+      if (detailFilter.type !== 'PP') {
+        detailOpdPpkRef.current.forEach(item => targets.push({ item, table: 'ppk' }))
+      }
+      if (detailFilter.type !== 'PPK') {
+        detailOpdPpRef.current.forEach(item => targets.push({ item, table: 'pp' }))
+      }
+      for (const { item, table } of targets) {
+        if (cancelled) return
+        const key = `${table}:${item.id}`
+        if (table === 'ppk' ? ppkHistory[key] : ppHistory[key]) continue
+        try {
+          const { data, error } = await supabase
+            .from(`${table}_history`)
+            .select('*')
+            .eq(`${table}_id`, item.id)
+            .order('changed_at', { ascending: false })
+            .limit(5)
+          const fallback = !error && data && data.length > 0 ? data : (item.catatan_mutasi
+            ? [{ changed_at: item.updated_at, jabatan: item.jabatan, satker: item.satker, bidang: item.nilai_bidang || item.bidang, catatan: item.catatan_mutasi }]
+            : [])
+          if (cancelled) return
+          if (table === 'ppk') setPpkHistory(prev => ({ ...prev, [key]: fallback }))
+          else setPpHistory(prev => ({ ...prev, [key]: fallback }))
+        } catch (e) {
+          const fallback = item.catatan_mutasi
+            ? [{ changed_at: item.updated_at, jabatan: item.jabatan, satker: item.satker, bidang: item.nilai_bidang || item.bidang, catatan: item.catatan_mutasi }]
+            : []
+          if (table === 'ppk') setPpkHistory(prev => ({ ...prev, [key]: fallback }))
+          else setPpHistory(prev => ({ ...prev, [key]: fallback }))
+        }
+      }
+    }
+    fetchAllHistory()
+    return () => { cancelled = true }
+  }, [opdDetail])
 
   React.useEffect(() => {
     if (loading) return
@@ -51,11 +122,15 @@ export default function DashboardVerifikator() {
   const openOpdDetail = (namaOpd, filter = null) => {
     setOpdDetail(namaOpd)
     setDetailFilter(filter || { type: null, id: null })
+    setPpkHistory({})
+    setPpHistory({})
   }
 
   const closeOpdDetail = () => {
     setOpdDetail(null)
     setDetailFilter({ type: null, id: null })
+    setPpkHistory({})
+    setPpHistory({})
   }
 
   const openPpkppModal = async () => {
@@ -210,25 +285,6 @@ export default function DashboardVerifikator() {
   const grafikOpd = React.useMemo(() => rekapPerOpd.slice(0, 8), [rekapPerOpd])
   const maxGrafikOpd = Math.max(...grafikOpd.map(row => row.ppk + row.pp), 1)
   const maxOpdTotal = Math.max(...rekapPerOpd.map(row => row.ppk + row.pp), 1)
-
-  const detailOpdPpk = React.useMemo(() => {
-    if (!opdDetail) return []
-    let result = ppkList.filter(item => ((item.satker || '-').trim() || '-') === opdDetail)
-    if (detailFilter.type === 'PPK' && detailFilter.id) {
-      result = result.filter(item => item.id === detailFilter.id)
-    }
-    return result
-  }, [opdDetail, ppkList, detailFilter])
-
-  const detailOpdPp = React.useMemo(() => {
-    if (!opdDetail) return []
-    let result = ppList.filter(item => ((item.satker || '-').trim() || '-') === opdDetail)
-    if (detailFilter.type === 'PP' && detailFilter.id) {
-      result = result.filter(item => item.id === detailFilter.id)
-    }
-    return result
-  }, [opdDetail, ppList, detailFilter])
-
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '-'
@@ -682,37 +738,61 @@ export default function DashboardVerifikator() {
                             </span>
                           )}
                         </div>
-                        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                          <div className="bg-slate-50 rounded-lg px-3 py-2">
-                            <p className="text-slate-400 text-xs">Jabatan</p>
-                            <p className="text-slate-700 mt-0.5">{item.jabatan || '-'}</p>
-                          </div>
-                          <div className="bg-slate-50 rounded-lg px-3 py-2">
-                            <p className="text-slate-400 text-xs">Satuan Kerja</p>
-                            <p className="text-slate-700 mt-0.5 truncate">{item.satker || '-'}</p>
-                          </div>
-                          {item.status_aktif === 'non-aktif' && item.alasan_penonaktifan && (
-                            <div className="md:col-span-2 bg-red-50/50 rounded-lg px-3 py-2 border border-red-100">
-                              <p className="text-red-500 text-xs">Alasan Penonaktifan</p>
-                              <p className="text-red-700 mt-0.5">{item.alasan_penonaktifan}</p>
-                            </div>
-                          )}
-                          {item.catatan_mutasi && (
-                            <div className="md:col-span-2 bg-amber-50/50 rounded-lg px-3 py-2 border border-amber-100">
-                              <p className="text-amber-600 text-xs">Catatan Mutasi</p>
-                              <p className="text-amber-800 mt-0.5">{item.catatan_mutasi}</p>
-                            </div>
-                          )}
-                        </div>
-                        <DokumenSyaratBadges value={item.dokumen_syarat} jabatan={item.jabatan} />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              )}
+<div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                           <div className="bg-slate-50 rounded-lg px-3 py-2">
+                             <p className="text-slate-400 text-xs">Jabatan</p>
+                             <p className="text-slate-700 mt-0.5">{item.jabatan || '-'}</p>
+                           </div>
+                           <div className="bg-slate-50 rounded-lg px-3 py-2">
+                             <p className="text-slate-400 text-xs">Satuan Kerja</p>
+                             <p className="text-slate-700 mt-0.5 truncate">{item.satker || '-'}</p>
+                           </div>
+                           {item.status_aktif === 'non-aktif' && item.alasan_penonaktifan && (
+                             <div className="md:col-span-2 bg-red-50/50 rounded-lg px-3 py-2 border border-red-100">
+                               <p className="text-red-500 text-xs">Alasan Penonaktifan</p>
+                               <p className="text-red-700 mt-0.5">{item.alasan_penonaktifan}</p>
+                             </div>
+                           )}
+                           {item.catatan_mutasi && (
+                             <div className="md:col-span-2 bg-amber-50/50 rounded-lg px-3 py-2 border border-amber-100">
+                               <p className="text-amber-600 text-xs">Catatan Mutasi</p>
+                               <p className="text-amber-800 mt-0.5">{item.catatan_mutasi}</p>
+                             </div>
+                           )}
+                         </div>
+                         <div className="mt-3">
+                           {(() => {
+                             const key = `ppk:${item.id}`
+                             const history = ppkHistory[key]
+                             if (!history || history.length === 0) return null
+                             return (
+                               <div className="space-y-1.5">
+                                 <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                                   <span className="material-symbols-outlined text-sm">history</span>
+                                   Riwayat Perubahan
+                                 </p>
+                                 {history.map((h, i) => (
+                                   <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-xs">
+                                     <p className="text-slate-400">{formatDateTime(h.changed_at)}</p>
+                                     <p className="text-slate-700">
+                                       Jabatan: {h.jabatan || '-'} | Satuan Kerja: {h.satker || '-'} | Bidang: {h.bidang || '-'}
+                                     </p>
+                                     {h.catatan && <p className="text-slate-500 mt-0.5">{h.catatan}</p>}
+                                   </div>
+                                 ))}
+                               </div>
+                             )
+                           })()}
+                         </div>
+                         <DokumenSyaratBadges value={item.dokumen_syarat} jabatan={item.jabatan} />
+                       </div>
+                     ))}
+                   </div>
+                 )}
+               </div>
+               )}
 
-              {detailFilter.type !== 'PPK' && (
+               {detailFilter.type !== 'PPK' && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-emerald-600">workspaces</span>
@@ -744,29 +824,53 @@ export default function DashboardVerifikator() {
                             </span>
                           )}
                         </div>
-                        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                          <div className="bg-slate-50 rounded-lg px-3 py-2">
-                            <p className="text-slate-400 text-xs">Jabatan</p>
-                            <p className="text-slate-700 mt-0.5">{item.jabatan || '-'}</p>
-                          </div>
-                          <div className="bg-slate-50 rounded-lg px-3 py-2">
-                            <p className="text-slate-400 text-xs">Satuan Kerja</p>
-                            <p className="text-slate-700 mt-0.5 truncate">{item.satker || '-'}</p>
-                          </div>
-                          {item.status_aktif === 'non-aktif' && item.alasan_penonaktifan && (
-                            <div className="md:col-span-2 bg-red-50/50 rounded-lg px-3 py-2 border border-red-100">
-                              <p className="text-red-500 text-xs">Alasan Penonaktifan</p>
-                              <p className="text-red-700 mt-0.5">{item.alasan_penonaktifan}</p>
-                            </div>
-                          )}
-                          {item.catatan_mutasi && (
-                            <div className="md:col-span-2 bg-amber-50/50 rounded-lg px-3 py-2 border border-amber-100">
-                              <p className="text-amber-600 text-xs">Catatan Mutasi</p>
-                              <p className="text-amber-800 mt-0.5">{item.catatan_mutasi}</p>
-                            </div>
-                          )}
-                        </div>
-                        <DokumenSyaratBadges value={item.dokumen_syarat} jabatan={item.jabatan} />
+<div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                           <div className="bg-slate-50 rounded-lg px-3 py-2">
+                             <p className="text-slate-400 text-xs">Jabatan</p>
+                             <p className="text-slate-700 mt-0.5">{item.jabatan || '-'}</p>
+                           </div>
+                           <div className="bg-slate-50 rounded-lg px-3 py-2">
+                             <p className="text-slate-400 text-xs">Satuan Kerja</p>
+                             <p className="text-slate-700 mt-0.5 truncate">{item.satker || '-'}</p>
+                           </div>
+                           {item.status_aktif === 'non-aktif' && item.alasan_penonaktifan && (
+                             <div className="md:col-span-2 bg-red-50/50 rounded-lg px-3 py-2 border border-red-100">
+                               <p className="text-red-500 text-xs">Alasan Penonaktifan</p>
+                               <p className="text-red-700 mt-0.5">{item.alasan_penonaktifan}</p>
+                             </div>
+                           )}
+                           {item.catatan_mutasi && (
+                             <div className="md:col-span-2 bg-amber-50/50 rounded-lg px-3 py-2 border border-amber-100">
+                               <p className="text-amber-600 text-xs">Catatan Mutasi</p>
+                               <p className="text-amber-800 mt-0.5">{item.catatan_mutasi}</p>
+                             </div>
+                           )}
+                         </div>
+                         <div className="mt-3">
+                           {(() => {
+                             const key = `pp:${item.id}`
+                             const history = ppHistory[key]
+                             if (!history || history.length === 0) return null
+                             return (
+                               <div className="space-y-1.5">
+                                 <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                                   <span className="material-symbols-outlined text-sm">history</span>
+                                   Riwayat Perubahan
+                                 </p>
+                                 {history.map((h, i) => (
+                                   <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-xs">
+                                     <p className="text-slate-400">{formatDateTime(h.changed_at)}</p>
+                                     <p className="text-slate-700">
+                                       Jabatan: {h.jabatan || '-'} | Satuan Kerja: {h.satker || '-'} | Bidang: {h.bidang || '-'}
+                                     </p>
+                                     {h.catatan && <p className="text-slate-500 mt-0.5">{h.catatan}</p>}
+                                   </div>
+                                 ))}
+                               </div>
+                             )
+                           })()}
+                         </div>
+                         <DokumenSyaratBadges value={item.dokumen_syarat} jabatan={item.jabatan} />
                       </div>
                     ))}
                   </div>

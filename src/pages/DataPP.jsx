@@ -37,6 +37,9 @@ export default function DataPP() {
   const [openMenuId, setOpenMenuId] = React.useState(null)
   const [syncing, setSyncing] = React.useState(false)
   const [toast, setToast] = React.useState({ open: false, message: '', type: 'success' })
+  const [historyOpen, setHistoryOpen] = React.useState(false)
+  const [historyData, setHistoryData] = React.useState([])
+  const [historyLoading, setHistoryLoading] = React.useState(false)
   const ITEMS_PER_PAGE = 5
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
@@ -136,6 +139,24 @@ export default function DataPP() {
   const openDetail = (pp) => {
     setSelectedDetail(pp)
     setDetailOpen(true)
+  }
+
+  const openHistory = async (pp) => {
+    setOpenMenuId(null)
+    setHistoryLoading(true)
+    setHistoryOpen(true)
+    try {
+      const { data, error } = await supabase.from('pp_history').select('*').eq('pp_id::text', String(pp.id)).order('changed_at', { ascending: false })
+      if (!error && data && data.length > 0) {
+        setHistoryData(data)
+      } else {
+        setHistoryData([{ changed_at: pp.updated_at, jabatan: pp.jabatan, satker: pp.satker, bidang: pp.nilai_bidang || pp.bidang, catatan: pp.catatan_mutasi || 'Data PP tercatat' }])
+      }
+    } catch (e) {
+      setHistoryData([{ changed_at: pp.updated_at, jabatan: pp.jabatan, satker: pp.satker, bidang: pp.nilai_bidang || pp.bidang, catatan: pp.catatan_mutasi || 'Data PP tercatat' }])
+    } finally {
+      setHistoryLoading(false)
+    }
   }
 
   const closeModal = () => {
@@ -311,17 +332,17 @@ export default function DataPP() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-2 md:px-md py-sm flex items-center justify-center">
+<td className="px-2 md:px-md py-sm flex items-center justify-center">
                       <div className="relative">
                         <button
-                          onClick={() => (item.status_aktif === 'aktif' ? openEdit(item) : openDetail(item))}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-surface-container-low transition-all"
-                          title="Update"
+                          onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-surface-container-low transition-all text-on-surface-variant"
+                          title="Aksi"
                         >
-                          <span className="material-symbols-outlined text-sm">update</span>
+                          <span className="material-symbols-outlined text-sm">more_vert</span>
                         </button>
                         {openMenuId === item.id && (
-                          <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 w-36 bg-surface border border-outline-variant rounded-lg shadow-lg z-30 overflow-hidden">
+                          <div className="absolute right-0 top-full mt-1 w-40 bg-surface border border-outline-variant rounded-lg shadow-lg z-30 overflow-hidden">
                             {item.status_aktif === 'aktif' ? (
                               <>
                                 <button
@@ -330,16 +351,32 @@ export default function DataPP() {
                                 >
                                   <span className="material-symbols-outlined text-sm">edit</span>
                                   Edit
-                                 </button>
-                               </>
+                                </button>
+                                <button
+                                  onClick={() => openHistory(item)}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-sm">history</span>
+                                  Riwayat
+                                </button>
+                              </>
                             ) : (
-                              <button
-                                onClick={() => { openDetail(item); setOpenMenuId(null) }}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
-                              >
-                                <span className="material-symbols-outlined text-sm">visibility</span>
-                                Detail
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => { openDetail(item); setOpenMenuId(null) }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-sm">visibility</span>
+                                  Detail
+                                </button>
+                                <button
+                                  onClick={() => openHistory(item)}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-sm">history</span>
+                                  Riwayat
+                                </button>
+                              </>
                             )}
                           </div>
                         )}
@@ -612,6 +649,46 @@ export default function DataPP() {
                   <p className="text-label-xs text-red-700 mb-1 font-semibold">Alasan Penonaktifan</p>
                   <p className="font-body-sm text-body-sm text-red-800">{selectedDetail.alasan_penonaktifan}</p>
                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Riwayat Modal */}
+      {historyOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" onClick={() => setHistoryOpen(false)}>
+          <div className="w-full md:w-[520px] max-h-[90vh] flex flex-col bg-surface-container-lowest rounded-2xl shadow-2xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant bg-surface-container-low/50">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-primary text-[20px]">history</span>
+                </div>
+                <h3 className="text-lg font-semibold text-on-surface">Riwayat Perubahan PP</h3>
+              </div>
+              <button onClick={() => setHistoryOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container-low transition-colors">
+                <span className="material-symbols-outlined text-on-surface-variant text-[20px]">close</span>
+              </button>
+            </div>
+            <div className="p-4 md:p-5 space-y-3 overflow-y-auto">
+              {historyLoading ? (
+                <p className="text-body-sm text-on-surface-variant text-center py-6">Memuat riwayat...</p>
+              ) : historyData.length === 0 ? (
+                <p className="text-body-sm text-on-surface-variant text-center py-6">Belum ada riwayat perubahan.</p>
+              ) : (
+                historyData.map((h, i) => (
+                  <div key={i} className="border border-outline-variant rounded-lg p-3 bg-surface-container-lowest">
+                    <p className="text-[11px] text-on-surface-variant mb-1">
+                      {h.changed_at ? new Date(h.changed_at).toLocaleString('id-ID') : '-'}
+                    </p>
+                    <div className="grid grid-cols-1 gap-1.5 text-body-sm">
+                      <p><span className="text-on-surface-variant">Jabatan:</span> <span className="text-on-surface font-medium">{h.jabatan || '-'}</span></p>
+                      <p><span className="text-on-surface-variant">Satuan Kerja:</span> <span className="text-on-surface font-medium">{h.satker || '-'}</span></p>
+                      <p><span className="text-on-surface-variant">Bidang/Bagian:</span> <span className="text-on-surface font-medium">{h.bidang || '-'}</span></p>
+                      {h.catatan && <p className="text-on-surface-variant"><span>Catatan:</span> {h.catatan}</p>}
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>

@@ -13,6 +13,8 @@ import DetailPengajuan from './pages/DetailPengajuan'
 import LaporanVerifikator from './pages/LaporanVerifikator'
 import DataPPK from './pages/DataPPK'
 import DataPP from './pages/DataPP'
+import DataSatker from './pages/DataSatker'
+import DataBidang from './pages/DataBidang'
 import ProfilVerifikator from './pages/ProfilVerifikator'
 
 function ProtectedRoute({ children }) {
@@ -99,6 +101,20 @@ function App() {
           <ProtectedRoute>
             <AppLayout>
               <DataPP />
+            </AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/datasatker" element={
+          <ProtectedRoute>
+            <AppLayout>
+              <DataSatker />
+            </AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/databidang" element={
+          <ProtectedRoute>
+            <AppLayout>
+              <DataBidang />
             </AppLayout>
           </ProtectedRoute>
         } />

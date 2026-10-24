@@ -38,6 +38,9 @@ export default function DataPPK() {
   const [openMenuId, setOpenMenuId] = React.useState(null)
   const [syncing, setSyncing] = React.useState(false)
   const [toast, setToast] = React.useState({ open: false, message: '', type: 'success' })
+  const [historyOpen, setHistoryOpen] = React.useState(false)
+  const [historyData, setHistoryData] = React.useState([])
+  const [historyLoading, setHistoryLoading] = React.useState(false)
   const ITEMS_PER_PAGE = 5
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
@@ -86,7 +89,7 @@ export default function DataPPK() {
     setModalOpen(true)
   }
 
-  const openEdit = async (ppk) => {
+const openEdit = async (ppk) => {
     setSelectedPpk(ppk)
     setForm({
       nama_lengkap: ppk.nama_lengkap || '',
@@ -98,7 +101,10 @@ export default function DataPPK() {
       dokumen: parseDokumenSyarat(ppk.dokumen_syarat),
     })
     setAlasanPenonaktifan('')
-    setModalOpen(true)
+    try {
+      const data = await getSatkerList()
+      setSatkerList(data || [])
+    } catch (e) {}
     if (ppk.satker) {
       try {
         const data = await getBidangList(ppk.satker)
@@ -107,10 +113,7 @@ export default function DataPPK() {
     } else {
       setBidangList([])
     }
-    try {
-      const data = await getSatkerList()
-      setSatkerList(data || [])
-    } catch (e) {}
+setModalOpen(true)
   }
 
   const openMutasi = async (ppk) => {
@@ -147,12 +150,30 @@ export default function DataPPK() {
     setSelectedDetail(ppk)
     setDetailOpen(true)
     setPpkHistory([])
-    ;(async () => {
-      try {
-        const { data } = await supabase.from('ppk_history').select('*').eq('ppk_id', ppk.id).order('changed_at', { ascending: false })
-        setPpkHistory(data || [])
-      } catch (e) { setPpkHistory([]) }
-    })()
+;(async () => {
+        try {
+          const { data } = await supabase.from('ppk_history').select('*').eq('ppk_id', ppk.id).order('changed_at', { ascending: false })
+          setPpkHistory(data || [])
+        } catch (e) { setPpkHistory([]) }
+      })()
+  }
+
+  const openHistory = async (ppk) => {
+    setOpenMenuId(null)
+    setHistoryLoading(true)
+    setHistoryOpen(true)
+    try {
+      const { data, error } = await supabase.from('ppk_history').select('*').eq('ppk_id::text', String(ppk.id)).order('changed_at', { ascending: false })
+      if (!error && data && data.length > 0) {
+        setHistoryData(data)
+      } else {
+        setHistoryData([{ changed_at: ppk.updated_at, jabatan: ppk.jabatan, satker: ppk.satker, bidang: ppk.nama_bidang, catatan: ppk.catatan_mutasi || 'Data PPK tercatat' }])
+      }
+    } catch (e) {
+      setHistoryData([{ changed_at: ppk.updated_at, jabatan: ppk.jabatan, satker: ppk.satker, bidang: ppk.nama_bidang, catatan: ppk.catatan_mutasi || 'Data PPK tercatat' }])
+    } finally {
+      setHistoryLoading(false)
+    }
   }
 
   const closeModal = () => {
@@ -204,17 +225,6 @@ const handleMutasi = async (e) => {
     }
   }
 
-  const handleNonaktifkan = async (ppk) => {
-    if (!window.confirm(`Yakin ingin menonaktifkan PPK: ${ppk.nama_lengkap}?`)) return
-    try {
-      await updatePpk(ppk.id, { status_aktif: 'non-aktif', alasan_penonaktifan: alasanPenonaktifan || 'Dinonaktifkan oleh administrator' })
-      loadData()
-      setToast({ open: true, message: 'PPK telah dinonaktifkan', type: 'success' })
-    } catch (err) {
-setToast({ open: true, message: err.message || 'Gagal menonaktifkan PPK', type: 'error' })
-    }
-  }
-
   const getStatusBadge = (status) => {
     if (status === 'aktif') {
       return 'bg-green-50 text-green-700 border border-green-200'
@@ -227,15 +237,17 @@ setToast({ open: true, message: err.message || 'Gagal menonaktifkan PPK', type: 
     if (statusFilter !== 'all') {
       result = result.filter(item => item.status_aktif === statusFilter)
     }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
+    const q = (searchQuery || '').trim().toLowerCase()
+    if (q) {
       result = result.filter(item => {
-        return (
-          (item.nama_lengkap || '').toLowerCase().includes(q) ||
-          (item.nip || '').toLowerCase().includes(q) ||
-          (item.jabatan || '').toLowerCase().includes(q) ||
-          (item.satker || '').toLowerCase().includes(q)
-        )
+        const haystack = [
+          item.nama_lengkap || '',
+          item.nip || '',
+          item.jabatan || '',
+          item.satker || '',
+          item.nama_bidang || ''
+        ].join(' ').toLowerCase()
+        return haystack.includes(q)
       })
     }
     return result
@@ -339,35 +351,36 @@ setToast({ open: true, message: err.message || 'Gagal menonaktifkan PPK', type: 
                         </span>
                       </div>
                     </td>
-                    <td className="px-2 md:px-md py-sm flex items-center justify-center">
+<td className="px-2 md:px-md py-sm flex items-center justify-center">
                       <div className="relative">
                         <button
-                          onClick={() => (item.status_aktif === 'aktif' ? openEdit(item) : openDetail(item))}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-surface-container-low transition-all"
-                          title="Update"
+                          onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-surface-container-low transition-all text-on-surface-variant"
+                          title="Aksi"
                         >
-                          <span className="material-symbols-outlined text-sm">update</span>
+                          <span className="material-symbols-outlined text-sm">more_vert</span>
                         </button>
-{openMenuId === item.id && (
-                            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 w-36 bg-surface border border-outline-variant rounded-lg shadow-lg z-30 overflow-hidden">
-                              {item.status_aktif === 'aktif' ? (
-                                <>
-                                  <button
-                                    onClick={() => { openEdit(item); setOpenMenuId(null) }}
-                                    className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
-                                  >
-                                    <span className="material-symbols-outlined text-sm">edit</span>
-                                    Edit
-                                  </button>
-                                  <button
-                                    onClick={() => { handleNonaktifkan(item); setOpenMenuId(null) }}
-                                    className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
-                                  >
-                                    <span className="material-symbols-outlined text-sm">block</span>
-                                    Non-aktifkan
-                                  </button>
-                                </>
-                              ) : (
+                        {openMenuId === item.id && (
+                          <div className="absolute right-0 top-full mt-1 w-40 bg-surface border border-outline-variant rounded-lg shadow-lg z-30 overflow-hidden">
+                            {item.status_aktif === 'aktif' ? (
+                              <>
+                                <button
+                                  onClick={() => { openEdit(item); setOpenMenuId(null) }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-sm">edit</span>
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => openHistory(item)}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-sm">history</span>
+                                  Riwayat
+                                </button>
+                              </>
+                            ) : (
+                              <>
                                 <button
                                   onClick={() => { openDetail(item); setOpenMenuId(null) }}
                                   className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
@@ -375,9 +388,17 @@ setToast({ open: true, message: err.message || 'Gagal menonaktifkan PPK', type: 
                                   <span className="material-symbols-outlined text-sm">visibility</span>
                                   Detail
                                 </button>
-                              )}
-                            </div>
-                          )}
+                                <button
+                                  onClick={() => openHistory(item)}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-sm">history</span>
+                                  Riwayat
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -507,17 +528,17 @@ setToast({ open: true, message: err.message || 'Gagal menonaktifkan PPK', type: 
                   ))}
                 </select>
               </div>
-                {!(form.satker || '').toLowerCase().includes('kecamatan') && !(form.satker || '').toLowerCase().includes('upt puskesmas') && (
-                  <div className="space-y-2 max-h-40 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
-                    {bidangList.map((item) => (
-                      <label key={item.id} className="flex items-center gap-2.5 cursor-pointer group">
-                        <input type="checkbox" checked={Array.isArray(form.bidang) && form.bidang.includes(item.nama)} onChange={(e) => { const checked = e.target.checked; setForm((prev) => ({ ...prev, bidang: checked ? [...(prev.bidang || []), item.nama] : (prev.bidang || []).filter((b) => b !== item.nama) })) }} className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary/30" />
-                        <span className="text-sm text-slate-700 group-hover:text-slate-900">{item.nama}</span>
-                      </label>
-                    ))}
-                     {bidangList.length === 0 && (<p className="text-sm text-slate-500">Pilih Satuan Kerja terlebih dahulu</p>)}
-                  </div>
-                 )}
+  {(form.satker || '') && (
+    <div className="space-y-2 max-h-40 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
+      {bidangList.map((item) => (
+        <label key={item.id} className="flex items-center gap-2.5 cursor-pointer group">
+          <input type="checkbox" checked={Array.isArray(form.bidang) && form.bidang.includes(item.nama)} onChange={(e) => { const checked = e.target.checked; setForm((prev) => ({ ...prev, bidang: checked ? [...(prev.bidang || []), item.nama] : (prev.bidang || []).filter((b) => b !== item.nama) })) }} className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary/30" />
+          <span className="text-sm text-slate-700 group-hover:text-slate-900">{item.nama}</span>
+        </label>
+      ))}
+       {bidangList.length === 0 && (<p className="text-sm text-slate-500">Pilih Satuan Kerja terlebih dahulu</p>)}
+    </div>
+  )}
                <div className="space-y-xs">
                 <label className="text-label-sm text-on-surface-variant">Status Aktif</label>
                 <select
@@ -717,6 +738,46 @@ setToast({ open: true, message: err.message || 'Gagal menonaktifkan PPK', type: 
                   <p className="text-label-xs text-red-700 mb-1 font-semibold">Alasan Penonaktifan</p>
                   <p className="font-body-sm text-body-sm text-red-800">{selectedDetail.alasan_penonaktifan}</p>
                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Riwayat Modal */}
+      {historyOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" onClick={() => setHistoryOpen(false)}>
+          <div className="w-full md:w-[520px] max-h-[90vh] flex flex-col bg-surface-container-lowest rounded-2xl shadow-2xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant bg-surface-container-low/50">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-primary text-[20px]">history</span>
+                </div>
+                <h3 className="text-lg font-semibold text-on-surface">Riwayat Perubahan PPK</h3>
+              </div>
+              <button onClick={() => setHistoryOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container-low transition-colors">
+                <span className="material-symbols-outlined text-on-surface-variant text-[20px]">close</span>
+              </button>
+            </div>
+            <div className="p-4 md:p-5 space-y-3 overflow-y-auto">
+              {historyLoading ? (
+                <p className="text-body-sm text-on-surface-variant text-center py-6">Memuat riwayat...</p>
+              ) : historyData.length === 0 ? (
+                <p className="text-body-sm text-on-surface-variant text-center py-6">Belum ada riwayat perubahan.</p>
+              ) : (
+                historyData.map((h, i) => (
+                  <div key={i} className="border border-outline-variant rounded-lg p-3 bg-surface-container-lowest">
+                    <p className="text-[11px] text-on-surface-variant mb-1">
+                      {h.changed_at ? new Date(h.changed_at).toLocaleString('id-ID') : '-'}
+                    </p>
+                    <div className="grid grid-cols-1 gap-1.5 text-body-sm">
+                      <p><span className="text-on-surface-variant">Jabatan:</span> <span className="text-on-surface font-medium">{h.jabatan || '-'}</span></p>
+                      <p><span className="text-on-surface-variant">Satuan Kerja:</span> <span className="text-on-surface font-medium">{h.satker || '-'}</span></p>
+                      <p><span className="text-on-surface-variant">Bidang/Bagian:</span> <span className="text-on-surface font-medium">{h.bidang || '-'}</span></p>
+                      {h.catatan && <p className="text-on-surface-variant"><span>Catatan:</span> {h.catatan}</p>}
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>

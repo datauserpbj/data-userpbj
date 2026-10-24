@@ -451,7 +451,7 @@ export async function updatePpk(id, payload) {
     nip: nip || existing.nip,
     jabatan: jabatan ?? existing.jabatan,
     satker: satker ?? existing.satker,
-    nama_bidang: bidang ?? existing.nama_bidang,
+    nama_bidang: Array.isArray(bidang) ? (bidang.length ? bidang.join(', ') : null) : (bidang ?? existing.nama_bidang),
     status_aktif: status_aktif || existing.status_aktif,
     updated_at: new Date().toISOString(),
   }
