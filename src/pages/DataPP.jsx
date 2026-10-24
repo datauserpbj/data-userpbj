@@ -14,6 +14,7 @@ import {
 } from '../lib/supabase-helpers'
 import DokumenSyaratField, { DokumenSyaratBadges } from '../components/DokumenSyaratField'
 import { parseDokumenSyarat } from '../lib/dokumen-syarat'
+import Select from 'react-select'
 import Toast from '../components/Toast'
 
 export default function DataPP() {
@@ -475,17 +476,41 @@ export default function DataPP() {
                   ))}
                 </select>
               </div>
-                {!(form.satker || '').toLowerCase().includes('kecamatan') && !(form.satker || '').toLowerCase().includes('upt puskesmas') && (
-                  <div className="space-y-2 max-h-40 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
-                    {bidangList.map((item) => (
-                      <label key={item.id} className="flex items-center gap-2.5 cursor-pointer group">
-                        <input type="checkbox" checked={Array.isArray(form.bidang) && form.bidang.includes(item.nama)} onChange={(e) => { const checked = e.target.checked; setForm((prev) => ({ ...prev, bidang: checked ? [...(prev.bidang || []), item.nama] : (prev.bidang || []).filter((b) => b !== item.nama) })) }} className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary/30" />
-                        <span className="text-sm text-slate-700 group-hover:text-slate-900">{item.nama}</span>
-                      </label>
-                    ))}
-                     {bidangList.length === 0 && (<p className="text-sm text-slate-500">Pilih Satuan Kerja terlebih dahulu</p>)}
-                  </div>
-                 )}
+              {(form.satker || '') && (
+    <div className="space-y-xs">
+      <label className="text-label-sm text-on-surface-variant">Bidang/Bagian</label>
+      <Select
+        isMulti
+        options={bidangList.map((item) => ({ label: item.nama, value: item.nama }))}
+        value={(form.bidang || []).map((b) => ({ label: b, value: b }))}
+        onChange={(selected) => setForm({ ...form, bidang: selected?.map((s) => s.value) || [] })}
+        placeholder="Pilih Bidang/Bagian"
+        styles={{
+          control: (base) => ({
+            ...base,
+            minHeight: '40px',
+            backgroundColor: '#ffffff',
+            borderColor: '#cbd5e1',
+            '&:hover': { borderColor: '#94a3b8' },
+          }),
+          option: (base, { isSelected, isFocused }) => ({
+            ...base,
+            backgroundColor: isSelected ? '#2563eb' : isFocused ? '#eff6ff' : '#ffffff',
+            color: isSelected ? '#ffffff' : '#1e293b',
+            cursor: 'pointer',
+          }),
+          singleValue: (base) => ({ ...base, color: '#1e293b' }),
+          multiValue: (base) => ({ ...base, backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: 6 }),
+          multiValueLabel: (base) => ({ ...base, color: '#1e40af', fontWeight: 500 }),
+          multiValueRemove: (base) => ({ ...base, color: '#1e40af', ':hover': { backgroundColor: '#bfdbfe', color: '#1e40af' } }),
+          placeholder: (base) => ({ ...base, color: '#64748b' }),
+        }}
+        isClearable
+        menuPlacement="auto"
+      />
+      {bidangList.length === 0 && (<p className="text-sm text-slate-500">Pilih Satuan Kerja terlebih dahulu</p>)}
+    </div>
+  )}
                 <div className="space-y-xs">
                 <label className="text-label-sm text-on-surface-variant">Status Aktif</label>
                 <select
